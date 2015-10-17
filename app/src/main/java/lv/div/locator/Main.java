@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import lv.div.locator.actions.HttpReportSender;
+
 public class Main extends AppCompatActivity {
 
     public static boolean isService = false;
@@ -33,6 +35,9 @@ public class Main extends AppCompatActivity {
 //        startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 //        startActivity(startMain);
 //        isService = true;
+
+        // Create HTTP report sender:
+        HttpReportSender httpReportSender = new HttpReportSender();
 
 
         // Construct our Intent specifying the Service

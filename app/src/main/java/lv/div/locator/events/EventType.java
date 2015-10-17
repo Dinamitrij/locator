@@ -1,4 +1,4 @@
-package lv.div.locator;
+package lv.div.locator.events;
 
 /**
  * Some important event types for the application

@@ -8,6 +8,8 @@ import android.os.Bundle;
 import java.util.ArrayList;
 import java.util.Date;
 
+import lv.div.locator.events.EventType;
+
 public class DeviceLocationListener implements LocationListener {
     private static DeviceLocationListener ourInstance = new DeviceLocationListener();
 

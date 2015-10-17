@@ -3,6 +3,8 @@ package lv.div.locator;
 import java.util.Date;
 import java.util.List;
 
+import lv.div.locator.events.EventType;
+
 public class SMSEvent {
 
 

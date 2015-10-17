@@ -35,6 +35,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import de.greenrobot.event.EventBus;
+import lv.div.locator.events.EventHttpReport;
+import lv.div.locator.events.EventType;
+
 
 public class BackgroundService extends IntentService {
 
@@ -172,7 +176,7 @@ public class BackgroundService extends IntentService {
 //            pollWifiNetworksAndPrepareSMS();
 
 
-            pollGPSlocationAndPrepareSMS();
+//            pollGPSlocationAndPrepareSMS();
 
 
 //                    LocationManager mlocManager=null;
@@ -450,22 +454,35 @@ public class BackgroundService extends IntentService {
 
     private void sendHTTPMessageIfNeeded() {
 
+
+
+
+
+
         URL url;
         HttpURLConnection urlConnection = null;
         try {
-            String batteryStatus = URLEncoder.encode(getBatteryStatus(), Const.UTF8_ENCODING);
-            String wifiData = URLEncoder.encode(getWifiNetworks(), Const.UTF8_ENCODING);
+//            String batteryStatus = URLEncoder.encode(getBatteryStatus(), Const.UTF8_ENCODING);
+//            String wifiData = URLEncoder.encode(getWifiNetworks(), Const.UTF8_ENCODING);
 
 
-            SMSEvent smsEvent = events.get(EventType.LOCATION);
-
+//            SMSEvent smsEvent = events.get(EventType.LOCATION);
 
             DeviceLocationListener gpsLocator = DeviceLocationListener.getInstance();
 
-
-            String gpsData = URLEncoder.encode(gpsLocator.getLastGpsStatus(), Const.UTF8_ENCODING);
+//            String gpsData = URLEncoder.encode(gpsLocator.getLastGpsStatus(), Const.UTF8_ENCODING);
 //            String gpsData = URLEncoder.encode(smsEvent.getAlertMessage(), Const.UTF8_ENCODING);
-            gpsData = gpsData + URLEncoder.encode(smsEvent.getAlertMessage(), Const.UTF8_ENCODING);
+//            gpsData = gpsData + URLEncoder.encode(smsEvent.getAlertMessage(), Const.UTF8_ENCODING);
+
+
+            EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), gpsLocator.getLastGpsStatus());
+            EventBus.getDefault().post(eventHttpReport);
+            int a=1;
+
+/*
+
+
+
 
 
 //            url = new URL("http://api.thingspeak.com/update?key=SGASYB87X8BPLHIY&field1=" + batteryStatus + "&field2=" + wifiData + "&field3=" + gpsData);
@@ -483,6 +500,8 @@ public class BackgroundService extends IntentService {
                 data = isw.read();
             }
             int aaaa = 0;
+
+            */
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -492,6 +511,9 @@ public class BackgroundService extends IntentService {
                 e.printStackTrace(); //If you want further info on failure...
             }
         }
+
+
+
 
 
     }
