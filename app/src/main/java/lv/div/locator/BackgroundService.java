@@ -814,7 +814,7 @@ if (!requested) {
             mgr.cancel(this.pi);
             this.pi = null;
         }
-//        mLocationManager.removeUpdates(this);
+        mLocationManager.removeUpdates(this);
     }
 
     // GPS METHODS
@@ -845,7 +845,7 @@ if (!requested) {
         cal = new GregorianCalendar();
         i = new Intent(this, TimeoutReceiver.class);
         this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
-        cal.add(Calendar.SECOND, 10);
+        cal.add(Calendar.SECOND, 30);
         mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
 
 //        locations = new CircularBuffer(MainService.LOCATION_BUFFER);
@@ -856,6 +856,7 @@ if (!requested) {
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
         double a = latitude+longitude;
+        EventBus.getDefault().post(new LocationEvent(location));
 
 
     }
