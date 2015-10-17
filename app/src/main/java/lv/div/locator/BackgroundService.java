@@ -17,11 +17,6 @@ import android.os.SystemClock;
 import android.telephony.SmsManager;
 import android.util.Log;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +33,8 @@ import java.util.TreeMap;
 import de.greenrobot.event.EventBus;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
+import lv.div.locator.events.LocationEvent;
+import lv.div.locator.gps.GeneralLocationListener;
 
 
 public class BackgroundService extends IntentService {
@@ -52,7 +49,7 @@ public class BackgroundService extends IntentService {
 
     private Date lastProblematicMoment = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
-
+    private GeneralLocationListener gpsLocationListener;
     private Set<EventType> eventsForSMS = new HashSet<>();
     private long smsSendingDelay;
     private String gps = "";
@@ -61,7 +58,13 @@ public class BackgroundService extends IntentService {
     List<ScanResult> results;
     private Intent batteryStatus;
     private final IntentFilter ifilter;
-//    private LocationManager mlocManager;
+    private boolean clockTicked = false;
+    private LocationManager gpsLocationManager;
+
+    private boolean requested = false;
+
+
+    //    private LocationManager mlocManager;
 //    private String bestProvider;
 
 
@@ -145,6 +148,12 @@ public class BackgroundService extends IntentService {
 
         batteryStatus = this.registerReceiver(null, ifilter);
 
+
+        gpsLocationListener = new GeneralLocationListener(this, "GPS");
+        gpsLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+
+
         Date startCycleTime = new Date(0); // Very old date. We should run cycle!
         int mainDelay = getMainDelay();
 
@@ -167,7 +176,7 @@ public class BackgroundService extends IntentService {
         while (!shouldWeStop()) {
             SystemClock.sleep(getMainDelay());
 
-            boolean clockTicked = clockTicked(startCycleTime, mainDelay);
+            clockTicked = clockTicked(startCycleTime, mainDelay);
             if (!clockTicked) {
                 continue;
             }
@@ -175,7 +184,9 @@ public class BackgroundService extends IntentService {
 
 //            pollWifiNetworksAndPrepareSMS();
 
-
+            if (needToPollGPSlocation()) {
+                pollGPSlocation();
+            }
 //            pollGPSlocationAndPrepareSMS();
 
 
@@ -214,11 +225,12 @@ public class BackgroundService extends IntentService {
 
 
 //            sendSMSIfNeeded();
-            sendHTTPMessageIfNeeded();
+//            sendHTTPreport();
 
 
             // Round is completed. Start "delay" for the next one.
             startCycleTime = new Date();
+            clockTicked = false;
 
         }
 
@@ -229,6 +241,24 @@ public class BackgroundService extends IntentService {
 //
 //
 //        }
+
+    }
+
+    private boolean needToPollGPSlocation() {
+        //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
+        return true;
+    }
+
+    private void pollGPSlocation() {
+
+//        gpsLocationListener = new GeneralLocationListener(this, "GPS");
+//        gpsLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+if (!requested) {
+    gpsLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, gpsLocationListener);
+    gpsLocationManager.addGpsStatusListener(gpsLocationListener);
+    gpsLocationManager.addNmeaListener(gpsLocationListener);
+    requested = true;
+}
 
     }
 
@@ -452,70 +482,15 @@ public class BackgroundService extends IntentService {
     }
 
 
-    private void sendHTTPMessageIfNeeded() {
-
-
-
-
-
-
-        URL url;
-        HttpURLConnection urlConnection = null;
+    private void sendHTTPreport() {
         try {
-//            String batteryStatus = URLEncoder.encode(getBatteryStatus(), Const.UTF8_ENCODING);
-//            String wifiData = URLEncoder.encode(getWifiNetworks(), Const.UTF8_ENCODING);
-
-
-//            SMSEvent smsEvent = events.get(EventType.LOCATION);
-
             DeviceLocationListener gpsLocator = DeviceLocationListener.getInstance();
-
-//            String gpsData = URLEncoder.encode(gpsLocator.getLastGpsStatus(), Const.UTF8_ENCODING);
-//            String gpsData = URLEncoder.encode(smsEvent.getAlertMessage(), Const.UTF8_ENCODING);
-//            gpsData = gpsData + URLEncoder.encode(smsEvent.getAlertMessage(), Const.UTF8_ENCODING);
-
-
             EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), gpsLocator.getLastGpsStatus());
             EventBus.getDefault().post(eventHttpReport);
-            int a=1;
 
-/*
-
-
-
-
-
-//            url = new URL("http://api.thingspeak.com/update?key=SGASYB87X8BPLHIY&field1=" + batteryStatus + "&field2=" + wifiData + "&field3=" + gpsData);
-            String urlAddress = String.format(Const.REPORT_URL_MASK, batteryStatus, wifiData, gpsData);
-            url = new URL(urlAddress);
-//
-            urlConnection = (HttpURLConnection) url
-                    .openConnection();
-            InputStream in = urlConnection.getInputStream();
-            InputStreamReader isw = new InputStreamReader(in);
-
-            int data = isw.read();
-            while (data != -1) {
-                char current = (char) data;
-                data = isw.read();
-            }
-            int aaaa = 0;
-
-            */
         } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                urlConnection.disconnect();
-            } catch (Exception e) {
-                e.printStackTrace(); //If you want further info on failure...
-            }
+            // be quiet...
         }
-
-
-
-
-
     }
 
     private int getGPSDistanceUpdateMeters() {
@@ -602,6 +577,152 @@ public class BackgroundService extends IntentService {
         }
     }
 */
+
+
+
+
+
+    /**
+     * This event is raised when the GeneralLocationListener has a new location.
+     * This method in turn updates notification, writes to file, reobtains
+     * preferences, notifies main service client and resets location managers.
+     *
+     * @param loc Location object
+     */
+    public void OnLocationChanged(Location loc) {
+
+        if (!clockTicked) {
+            // Application is is WAIT state. Next time...
+            return;
+        }
+
+        long currentTimeStamp = System.currentTimeMillis();
+
+        // Don't log a point until the user-defined time has elapsed
+        // However, if user has set an annotation, just log the point, disregard any filters
+//        if (!Session.hasDescription() && !Session.isSinglePointMode() && (currentTimeStamp - Session.getLatestTimeStamp()) < (AppSettings.getMinimumLoggingInterval() * 1000)) {
+//            return;
+//        }
+
+        //Don't log a point if user has been still
+        // However, if user has set an annotation, just log the point, disregard any filters
+//        if(userHasBeenStillForTooLong()) {
+//            tracer.info("Received location but the user hasn't moved, ignoring");
+//            return;
+//        }
+//
+//        if(!isFromValidListener(loc)){
+//            return;
+//        }
+
+
+        boolean isPassiveLocation = loc.getExtras().getBoolean("PASSIVE");
+
+        // Don't do anything until the user-defined accuracy is reached
+        // However, if user has set an annotation, just log the point, disregard any filters
+//        if (!Session.hasDescription() &&  AppSettings.getMinimumAccuracy() > 0) {
+//
+//            //Don't apply the retry interval to passive locations
+//            if (!isPassiveLocation && AppSettings.getMinimumAccuracy() < Math.abs(loc.getAccuracy())) {
+//
+//                if (this.firstRetryTimeStamp == 0) {
+//                    this.firstRetryTimeStamp = System.currentTimeMillis();
+//                }
+//
+//                if (currentTimeStamp - this.firstRetryTimeStamp <= AppSettings.getLoggingRetryPeriod() * 1000) {
+//                    tracer.warn("Only accuracy of " + String.valueOf(Math.floor(loc.getAccuracy())) + " m. Point discarded." + getString(R.string.inaccurate_point_discarded));
+//                    //return and keep trying
+//                    return;
+//                }
+//
+//                if (currentTimeStamp - this.firstRetryTimeStamp > AppSettings.getLoggingRetryPeriod() * 1000) {
+//                    tracer.warn("Only accuracy of " + String.valueOf(Math.floor(loc.getAccuracy())) + " m and timeout reached." + getString(R.string.inaccurate_point_discarded));
+//                    //Give up for now
+//                    StopManagerAndResetAlarm();
+//
+//                    //reset timestamp for next time.
+//                    this.firstRetryTimeStamp = 0;
+//                    return;
+//                }
+//
+//                //Success, reset timestamp for next time.
+//                this.firstRetryTimeStamp = 0;
+//            }
+//        }
+
+        //Don't do anything until the user-defined distance has been traversed
+        // However, if user has set an annotation, just log the point, disregard any filters
+//        if (!Session.hasDescription() && !Session.isSinglePointMode() && AppSettings.getMinimumDistanceInterval() > 0 && Session.hasValidLocation()) {
+//
+//            double distanceTraveled = Utilities.CalculateDistance(loc.getLatitude(), loc.getLongitude(),
+//                    Session.getCurrentLatitude(), Session.getCurrentLongitude());
+//
+//            if (AppSettings.getMinimumDistanceInterval() > distanceTraveled) {
+//                tracer.warn(String.format(getString(R.string.not_enough_distance_traveled), String.valueOf(Math.floor(distanceTraveled))) + ", point discarded");
+//                StopManagerAndResetAlarm();
+//                return;
+//            }
+//        }
+
+
+//        tracer.info(SessionLogcatAppender.MARKER_LOCATION, String.valueOf(loc.getLatitude()) + "," + String.valueOf(loc.getLongitude()));
+//        AdjustAltitude(loc);
+//        ResetCurrentFileName(false);
+//        Session.setLatestTimeStamp(System.currentTimeMillis());
+//        Session.setCurrentLocationInfo(loc);
+//        SetDistanceTraveled(loc);
+//        ShowNotification();
+
+//        if(isPassiveLocation){
+//            tracer.debug("Logging passive location to file");
+//        }
+
+//        WriteToFile(loc);
+//        ResetAutoSendTimersIfNecessary();
+//        StopManagerAndResetAlarm();
+
+
+        EventBus.getDefault().post(new LocationEvent(loc));
+
+//        if (Session.isSinglePointMode()) {
+//            tracer.debug("Single point mode - stopping now");
+//            StopLogging();
+//        }
+    }
+
+
+//    private void AdjustAltitude(Location loc) {
+//
+//        if(!loc.hasAltitude()){ return; }
+//
+//        if(AppSettings.shouldAdjustAltitudeFromGeoIdHeight() && loc.getExtras() != null){
+//            String geoidheight = loc.getExtras().getString("GEOIDHEIGHT");
+//            if (isNullOrEmpty(geoidheight)) {
+//                loc.setAltitude((float) loc.getAltitude() - Float.valueOf(geoidheight));
+//            }
+//            else {
+//                //If geoid height not present for adjustment, don't record an elevation at all.
+//                loc.removeAltitude();
+//            }
+//        }
+//
+//        if(loc.hasAltitude()){
+//            loc.setAltitude(loc.getAltitude() - AppSettings.getSubtractAltitudeOffset());
+//        }
+//    }
+
+
+    /**
+     * Checks if a string is null or empty
+     *
+     * @param text
+     * @return
+     */
+    public static boolean isNullOrEmpty(String text) {
+        return text == null || text.length() == 0;
+    }
+
+
 
 
 }
