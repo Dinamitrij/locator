@@ -1,7 +1,10 @@
 package lv.div.locator;
 
 
+import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -13,14 +16,17 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.SystemClock;
 import android.telephony.SmsManager;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,7 +43,7 @@ import lv.div.locator.events.LocationEvent;
 import lv.div.locator.gps.GeneralLocationListener;
 
 
-public class BackgroundService extends IntentService {
+public class BackgroundService extends Service implements LocationListener{
 
 
     private static final String MESSAGE_IN = "message_input";
@@ -46,6 +52,10 @@ public class BackgroundService extends IntentService {
 
     private boolean busy = false;
     private boolean generateEvent = true;
+    private PendingIntent pi;
+    private long lGPSTimestamp;
+
+    private LocationManager mLocationManager = null;
 
     private Date lastProblematicMoment = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
@@ -68,9 +78,11 @@ public class BackgroundService extends IntentService {
 //    private String bestProvider;
 
 
+
+
     public BackgroundService() {
         // TODO Auto-generated constructor stub
-        super("BackgroundService");
+//        super("BackgroundService");
         Log.d(Tag, "Constructor");
 
         // For the following we should send an SMS:
@@ -79,6 +91,9 @@ public class BackgroundService extends IntentService {
         eventsForSMS.add(EventType.WIFI_ENTER);
         eventsForSMS.add(EventType.WIFI_LEAVE);
         eventsForSMS.add(EventType.LOCATION);
+
+
+        Main.mServiceInstance = this;
 
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 
@@ -118,32 +133,64 @@ public class BackgroundService extends IntentService {
 
     }
 
+
+
+
+
+//    @Override
+//    public void onStart(Intent intent, int startId) {
+//        super.onStart(intent, startId);
+//    }
+
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+
+        if (null == mLocationManager) {
+            mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        }
+
+        startGPS();
+
+        return super.onStartCommand(intent, flags, startId);
+
+    }
+
     @Override
     public void onDestroy() {
         Log.d(Tag, "onDestroy()");
         super.onDestroy();
     }
 
-    @Override
-    public void onStart(Intent intent, int startId) {
-        Log.d(Tag, "onStart()");
-        super.onStart(intent, startId);
-    }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(Tag, "onStartCommand()");
-        return super.onStartCommand(intent, flags, startId);
-//        return START_STICKY;
-    }
 
-    @Override
-    public void setIntentRedelivery(boolean enabled) {
-        Log.d(Tag, "setIntentRedelivery()");
-        super.setIntentRedelivery(enabled);
-    }
 
-    @Override
+
+
+
+//    @Override
+//    public void onStart(Intent intent, int startId) {
+//        Log.d(Tag, "onStart()");
+//        super.onStart(intent, startId);
+//    }
+//
+//    @Override
+//    public int onStartCommand(Intent intent, int flags, int startId) {
+//        Log.d(Tag, "onStartCommand()");
+//        return super.onStartCommand(intent, flags, startId);
+////        return START_STICKY;
+//    }
+
+//    @Override
+//    public void setIntentRedelivery(boolean enabled) {
+//        Log.d(Tag, "setIntentRedelivery()");
+//        super.setIntentRedelivery(enabled);
+//    }
+
+
+
+
+//    @Override
     protected void onHandleIntent(Intent intent) {
 
         batteryStatus = this.registerReceiver(null, ifilter);
@@ -723,8 +770,110 @@ if (!requested) {
     }
 
 
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
 
+
+    // OTHER
+    public void sleep() {
+        // Check desired state
+//        if (MainApplication.trackingOn == false) {
+//            Debug("Tracking has been toggled off. Not scheduling any more wakeup alarms");
+//            stopSelf();
+//            // Tracking has been turned off, don't schedule any new alarms
+//            return;
+//        }
+
+        AlarmManager mgr = (AlarmManager)getSystemService(ALARM_SERVICE);
+        Intent i = new Intent(this, MainReceiver.class);
+        Calendar cal = new GregorianCalendar();
+
+        cal.add(Calendar.SECOND, 10);
+
+        this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
+        mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
+    }
+
+
+    public void gpsTimeout() {
+
+        stopGPS();
+//        saveLocation();
+        sleep();
+//        MainApplication.wakeLock2(false);
+    }
+
+
+    public void stopGPS() {
+        lGPSTimestamp = 0;
+        if (this.pi != null) {
+            AlarmManager mgr = (AlarmManager)getSystemService(ALARM_SERVICE);
+            mgr.cancel(this.pi);
+            this.pi = null;
+        }
+//        mLocationManager.removeUpdates(this);
+    }
+
+    // GPS METHODS
+    public void startGPS() {
+        // Set timeout for 30 seconds
+        AlarmManager mgr = null;
+        Intent i = null;
+        GregorianCalendar cal = null;
+        int iProviders = 0;
+
+        gpsLocationListener = new GeneralLocationListener(this, "GPS");
+
+        // Make sure at least one provider is available
+        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
+            iProviders++;
+        }
+
+        if (iProviders == 0) {
+            sleep();
+//            Main.wakeLock2(false);
+            return;
+        }
+
+        lGPSTimestamp = System.currentTimeMillis();
+//        lowestAccuracy = 9999;
+        mgr = (AlarmManager)getSystemService(ALARM_SERVICE);
+        cal = new GregorianCalendar();
+        i = new Intent(this, TimeoutReceiver.class);
+        this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
+        cal.add(Calendar.SECOND, 10);
+        mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
+
+//        locations = new CircularBuffer(MainService.LOCATION_BUFFER);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        double latitude = location.getLatitude();
+        double longitude = location.getLongitude();
+        double a = latitude+longitude;
+
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
 }
 
 

@@ -15,7 +15,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".BackgroundService"></service>
+        <!--<service android:name=".BackgroundService"></service>-->
+
+        <receiver android:name="lv.div.locator.MainReceiver" />
+        <receiver android:name="lv.div.locator.TimeoutReceiver" />
+        <service android:name="lv.div.locator.BackgroundService" />
+
+
     </application>
 
     <uses-permission android:name="android.permission.SEND_SMS"/>
