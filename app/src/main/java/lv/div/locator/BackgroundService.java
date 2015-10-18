@@ -184,9 +184,9 @@ public class BackgroundService extends Service implements LocationListener {
 
     private String getWifiNetworks() {
 
-//        if (!clockTicked(wifiCacheDate, getMainDelay())) { //Prevent to poll WiFi too often
-//            return wifiCache;
-//        }
+        if (!clockTicked(wifiCacheDate, getMainDelay())) { //Prevent to poll WiFi too often
+            return wifiCache;
+        }
 
 
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -215,9 +215,9 @@ public class BackgroundService extends Service implements LocationListener {
             sb.append("; ");
         }
 
-//        wifiCache = sb.toString();
-//        wifiCacheDate = new Date();
-        return sb.toString();
+        wifiCache = sb.toString();
+        wifiCacheDate = new Date();
+        return wifiCache;
     }
 
     private void sendSMSIfNeeded() {
@@ -391,7 +391,7 @@ public class BackgroundService extends Service implements LocationListener {
         cal = new GregorianCalendar();
         i = new Intent(this, TimeoutReceiver.class);
         this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
-        cal.add(Calendar.SECOND, MAIN_DELAY);
+        cal.add(Calendar.SECOND, getMainDelay());
         mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
 
     }
