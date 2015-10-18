@@ -49,6 +49,7 @@ public class BackgroundService extends Service implements LocationListener{
     private static final String MESSAGE_IN = "message_input";
     private static final String MESSAGE_OUT = "message_output";
     private final static String Tag = "---IntentServicetest";
+    public static final int MAIN_DELAY = 10;
 
     private boolean busy = false;
     private boolean generateEvent = true;
@@ -96,6 +97,7 @@ public class BackgroundService extends Service implements LocationListener{
         Main.mServiceInstance = this;
 
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+
 
 //        Criteria crit = new Criteria();
 //        crit.setAccuracy(Criteria.ACCURACY_FINE);
@@ -149,6 +151,8 @@ public class BackgroundService extends Service implements LocationListener{
         if (null == mLocationManager) {
             mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         }
+
+        batteryStatus = this.registerReceiver(null, ifilter);
 
         startGPS();
 
@@ -531,9 +535,9 @@ if (!requested) {
 
     private void sendHTTPreport() {
         try {
-            DeviceLocationListener gpsLocator = DeviceLocationListener.getInstance();
-            EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), gpsLocator.getLastGpsStatus());
-            EventBus.getDefault().post(eventHttpReport);
+//            DeviceLocationListener gpsLocator = DeviceLocationListener.getInstance();
+//            EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), gpsLocator.getLastGpsStatus());
+//            EventBus.getDefault().post(eventHttpReport);
 
         } catch (Exception e) {
             // be quiet...
@@ -642,6 +646,16 @@ if (!requested) {
             // Application is is WAIT state. Next time...
             return;
         }
+
+
+        double latitude = loc.getLatitude();
+        double longitude = loc.getLongitude();
+        String coordinates = String.valueOf(latitude) + ", "+ String.valueOf(longitude);
+
+//        DeviceLocationListener gpsLocator = DeviceLocationListener.getInstance();
+        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), coordinates, "");
+        EventBus.getDefault().post(eventHttpReport);
+
 
         long currentTimeStamp = System.currentTimeMillis();
 
@@ -828,6 +842,11 @@ if (!requested) {
         gpsLocationListener = new GeneralLocationListener(this, "GPS");
 
         // Make sure at least one provider is available
+        if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
+            iProviders++;
+        }
+
         if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
             iProviders++;
@@ -845,7 +864,7 @@ if (!requested) {
         cal = new GregorianCalendar();
         i = new Intent(this, TimeoutReceiver.class);
         this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
-        cal.add(Calendar.SECOND, 30);
+        cal.add(Calendar.SECOND, MAIN_DELAY);
         mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
 
 //        locations = new CircularBuffer(MainService.LOCATION_BUFFER);
@@ -853,10 +872,23 @@ if (!requested) {
 
     @Override
     public void onLocationChanged(Location location) {
+//        double latitude = location.getLatitude();
+//        double longitude = location.getLongitude();
+//        double a = latitude+longitude;
+//        EventBus.getDefault().post(new LocationEvent(location));
+
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
-        double a = latitude+longitude;
-        EventBus.getDefault().post(new LocationEvent(location));
+        String coordinates = String.valueOf(latitude) + ", "+ String.valueOf(longitude);
+
+        String accuracy = String.format("%.0f", location.getAccuracy());
+
+
+//        DeviceLocationListener gpsLocator = DeviceLocationListener.getInstance();
+        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), coordinates, accuracy);
+        EventBus.getDefault().post(eventHttpReport);
+
+
 
 
     }

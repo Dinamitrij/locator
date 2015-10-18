@@ -34,14 +34,14 @@ public class DeviceLocationListener implements LocationListener {
 //            String latitude = "Latitude: " + loc.getLatitude();
 
 
-        SMSEvent smsEvent = new SMSEvent();
-        smsEvent.setAlertMessage(lastGpsStatus);
-        smsEvent.setEventTime(new Date());
-//            smsEvent.setSmsRepeatDelayMsec(20000);
-        smsEvent.setProblemType(EventType.LOCATION);
-        ArrayList<String> phonesToAlert = new ArrayList<>();
-        phonesToAlert.add(Const.PHONE1);
-        smsEvent.setPhonesToAlert(phonesToAlert);
+//        SMSEvent smsEvent = new SMSEvent();
+//        smsEvent.setAlertMessage(lastGpsStatus);
+//        smsEvent.setEventTime(new Date());
+////            smsEvent.setSmsRepeatDelayMsec(20000);
+//        smsEvent.setProblemType(EventType.LOCATION);
+//        ArrayList<String> phonesToAlert = new ArrayList<>();
+//        phonesToAlert.add(Const.PHONE1);
+//        smsEvent.setPhonesToAlert(phonesToAlert);
 
         searchInProgress = false;
 

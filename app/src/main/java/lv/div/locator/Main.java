@@ -38,8 +38,8 @@ public class Main extends AppCompatActivity {
 //        i.putExtra("foo", "bar");
         // Start the service
         startService(i);
-//        finish();
-
+        finish();
+//////////////// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
     }
@@ -80,7 +80,7 @@ public class Main extends AppCompatActivity {
 //        i.putExtra("foo", "bar");
         // Start the service
         startService(i);
-//        finish();
+        finish();
 
     }
 
