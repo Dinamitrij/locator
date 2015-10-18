@@ -32,7 +32,7 @@ public class HttpReportSender {
             String wifiData = URLEncoder.encode(event.getWifiData(), Const.UTF8_ENCODING);
             String gpsData = URLEncoder.encode(event.getGpsData(), Const.UTF8_ENCODING);
 
-            String urlAddress = String.format(Const.REPORT_URL_MASK, batteryStatus, wifiData, gpsData, event.getAccuracy());
+            String urlAddress = String.format(Const.REPORT_URL_MASK, batteryStatus, wifiData, gpsData, event.getAccuracy(), event.getSafe());
 
 
             NetworkReport networkReport = new NetworkReport();

@@ -7,12 +7,14 @@ public class EventHttpReport {
     private String wifiData;
     private String gpsData;
     private String accuracy;
+    private String safe;
 
-    public EventHttpReport(String batteryStatus, String wifiData, String gpsData, String accuracy) {
+    public EventHttpReport(String batteryStatus, String wifiData, String gpsData, String accuracy, String safe) {
         this.batteryStatus = batteryStatus;
         this.wifiData = wifiData;
         this.gpsData = gpsData;
         this.accuracy = accuracy;
+        this.safe = safe;
     }
 
     public String getBatteryStatus() {
@@ -45,5 +47,13 @@ public class EventHttpReport {
 
     public void setAccuracy(String accuracy) {
         this.accuracy = accuracy;
+    }
+
+    public String getSafe() {
+        return safe;
+    }
+
+    public void setSafe(String safe) {
+        this.safe = safe;
     }
 }
