@@ -302,7 +302,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     private String getBatteryStatus() {
         int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
-        return level + "%";
+        return String.valueOf(level);
     }
 
 
