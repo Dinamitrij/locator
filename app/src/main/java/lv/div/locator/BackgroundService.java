@@ -400,11 +400,11 @@ public class BackgroundService extends Service implements LocationListener {
     public void onLocationChanged(Location location) {
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
-        String coordinates = String.valueOf(latitude) + ", " + String.valueOf(longitude);
+//        String coordinates = String.valueOf(latitude) + ", " + String.valueOf(longitude);
 
         String accuracy = String.format("%.0f", location.getAccuracy());
 
-        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), coordinates, accuracy, String.valueOf(isInSafeZone()));
+        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), String.valueOf(latitude), String.valueOf(longitude), accuracy, String.valueOf(isInSafeZone()));
         EventBus.getDefault().post(eventHttpReport);
 
     }

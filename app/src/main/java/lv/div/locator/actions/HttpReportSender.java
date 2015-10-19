@@ -30,12 +30,12 @@ public class HttpReportSender {
         try {
             String batteryStatus = URLEncoder.encode(event.getBatteryStatus(), Const.UTF8_ENCODING);
             String wifiData = URLEncoder.encode(event.getWifiData(), Const.UTF8_ENCODING);
-            String gpsData = URLEncoder.encode(event.getGpsData(), Const.UTF8_ENCODING);
+            String latitude = URLEncoder.encode(event.getLatitude(), Const.UTF8_ENCODING);
+            String longitude = URLEncoder.encode(event.getLongitude(), Const.UTF8_ENCODING);
 
             String deviceId = "test1";
 
-            String urlAddress = String.format(Const.REPORT_URL_MASK, batteryStatus, wifiData, gpsData, event.getAccuracy(), event.getSafe(), deviceId);
-
+            String urlAddress = String.format(Const.REPORT_URL_MASK, latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, deviceId);
 
             NetworkReport networkReport = new NetworkReport();
             networkReport.execute(urlAddress);

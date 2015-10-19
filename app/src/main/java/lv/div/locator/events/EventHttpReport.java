@@ -5,14 +5,16 @@ public class EventHttpReport {
 
     private String batteryStatus;
     private String wifiData;
-    private String gpsData;
+    private String latitude;
+    private String longitude;
     private String accuracy;
     private String safe;
 
-    public EventHttpReport(String batteryStatus, String wifiData, String gpsData, String accuracy, String safe) {
+    public EventHttpReport(String batteryStatus, String wifiData, String latitude, String longitude, String accuracy, String safe) {
         this.batteryStatus = batteryStatus;
         this.wifiData = wifiData;
-        this.gpsData = gpsData;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.accuracy = accuracy;
         this.safe = safe;
     }
@@ -33,12 +35,20 @@ public class EventHttpReport {
         this.wifiData = wifiData;
     }
 
-    public String getGpsData() {
-        return gpsData;
+    public String getLatitude() {
+        return latitude;
     }
 
-    public void setGpsData(String gpsData) {
-        this.gpsData = gpsData;
+    public void setLatitude(String latitude) {
+        this.latitude = latitude;
+    }
+
+    public String getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(String longitude) {
+        this.longitude = longitude;
     }
 
     public String getAccuracy() {
