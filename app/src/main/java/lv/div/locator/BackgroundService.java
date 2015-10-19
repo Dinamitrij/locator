@@ -69,6 +69,7 @@ public class BackgroundService extends Service implements LocationListener {
     private LocationManager gpsLocationManager;
 
     private boolean requested = false;
+    private String deviceId;
 
 
     public BackgroundService() {
@@ -367,7 +368,9 @@ public class BackgroundService extends Service implements LocationListener {
         GregorianCalendar cal = null;
         int iProviders = 0;
 
-//        gpsLocationListener = new GeneralLocationListener(this, "GPS");
+
+
+
 
         // Make sure at least one provider is available
         if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
@@ -382,7 +385,6 @@ public class BackgroundService extends Service implements LocationListener {
 
         if (iProviders == 0) {
             sleep();
-//            Main.wakeLock2(false);
             return;
         }
 
@@ -400,13 +402,30 @@ public class BackgroundService extends Service implements LocationListener {
     public void onLocationChanged(Location location) {
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
-//        String coordinates = String.valueOf(latitude) + ", " + String.valueOf(longitude);
-
         String accuracy = String.format("%.0f", location.getAccuracy());
 
-        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), String.valueOf(latitude), String.valueOf(longitude), accuracy, String.valueOf(isInSafeZone()));
+        buildDeviceId();
+
+        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), String.valueOf(latitude), String.valueOf(longitude), accuracy, String.valueOf(isInSafeZone()), deviceId);
         EventBus.getDefault().post(eventHttpReport);
 
+    }
+
+    /**
+     * Using MAC address as device ID
+     */
+    private void buildDeviceId() {
+        if (null== deviceId) {
+            try {
+                WifiManager wimanager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                deviceId = wimanager.getConnectionInfo().getMacAddress();
+                if (deviceId == null) {
+                    deviceId = String.valueOf(Math.round(Math.random() * 999999));
+                }
+            } catch (Exception e) {
+                deviceId = String.valueOf(Math.round(Math.random() * 999999));
+            }
+        }
     }
 
     @Override

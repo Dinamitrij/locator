@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 
 import de.greenrobot.event.EventBus;
 import lv.div.locator.Const;
+import lv.div.locator.Main;
 import lv.div.locator.events.EventHttpReport;
 
 public class HttpReportSender {
@@ -33,7 +34,7 @@ public class HttpReportSender {
             String latitude = URLEncoder.encode(event.getLatitude(), Const.UTF8_ENCODING);
             String longitude = URLEncoder.encode(event.getLongitude(), Const.UTF8_ENCODING);
 
-            String deviceId = "test1";
+            String deviceId = event.getDeviceId();
 
             String urlAddress = String.format(Const.REPORT_URL_MASK, latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, deviceId);
 
