@@ -16,7 +16,9 @@ import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
@@ -369,9 +371,6 @@ public class BackgroundService extends Service implements LocationListener {
         int iProviders = 0;
 
 
-
-
-
         // Make sure at least one provider is available
         if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
@@ -412,19 +411,21 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     /**
-     * Using MAC address as device ID
+     * Using IMEI as device ID
      */
     private void buildDeviceId() {
-        if (null== deviceId) {
-            try {
-                WifiManager wimanager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-                deviceId = wimanager.getConnectionInfo().getMacAddress();
-                if (deviceId == null) {
-                    deviceId = String.valueOf(Math.round(Math.random() * 999999));
-                }
-            } catch (Exception e) {
-                deviceId = String.valueOf(Math.round(Math.random() * 999999));
-            }
+
+        if (null == deviceId) {
+            deviceId = "rrr";
+//            try {
+//                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+//                deviceId = telephonyManager.getDeviceId();
+//                if (deviceId == null) {
+//                    deviceId = String.valueOf(Math.round(Math.random() * 999999));
+//                }
+//            } catch (Exception e) {
+//                deviceId = String.valueOf(Math.round(Math.random() * 999999));
+//            }
         }
     }
 
