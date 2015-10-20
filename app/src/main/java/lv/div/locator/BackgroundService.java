@@ -99,6 +99,7 @@ public class BackgroundService extends Service implements LocationListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        super.onStartCommand(intent, flags, startId);
         if (null == mLocationManager) {
             mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         }
@@ -107,7 +108,7 @@ public class BackgroundService extends Service implements LocationListener {
 
         startGPS();
 
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
 
     }
 
@@ -416,7 +417,7 @@ public class BackgroundService extends Service implements LocationListener {
     private void buildDeviceId() {
 
         if (null == deviceId) {
-            deviceId = "rrr";
+            deviceId = "rrrr";
 //            try {
 //                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 //                deviceId = telephonyManager.getDeviceId();
