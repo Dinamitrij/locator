@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -72,6 +73,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     private boolean requested = false;
     private String deviceId;
+    private final Criteria crit;
 
 
     public BackgroundService() {
@@ -92,6 +94,8 @@ public class BackgroundService extends Service implements LocationListener {
 
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 
+        crit = new Criteria();
+        crit.setAccuracy(Criteria.ACCURACY_FINE);
 
     }
 
@@ -372,16 +376,24 @@ public class BackgroundService extends Service implements LocationListener {
         int iProviders = 0;
 
 
-        // Make sure at least one provider is available
-        if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
+        LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        String bestProvider = mlocManager.getBestProvider(crit, false);
+        if (mLocationManager.isProviderEnabled(bestProvider)) {
+            mLocationManager.requestLocationUpdates(bestProvider, 0, 0, this);
             iProviders++;
         }
 
-        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
-            iProviders++;
-        }
+
+        // Make sure at least one provider is available
+//        if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+//            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
+//            iProviders++;
+//        }
+//
+//        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+//            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
+//            iProviders++;
+//        }
 
         if (iProviders == 0) {
             sleep();
