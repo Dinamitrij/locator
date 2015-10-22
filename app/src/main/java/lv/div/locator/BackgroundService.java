@@ -43,7 +43,7 @@ import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 
 
-public class BackgroundService extends Service implements LocationListener {
+public class BackgroundService extends Service {
 
     private final static String Tag = "---IntentServicetest";
     public static final int MAIN_DELAY = 10;
@@ -63,18 +63,19 @@ public class BackgroundService extends Service implements LocationListener {
     private Date wifiCacheDate = new Date(0);
 
     private int globalIterations = 0;
-    private WifiManager wifi;
-    private Intent batteryStatus;
-    private List<String> safeWifi = new ArrayList<>();
 
 
-    private final IntentFilter ifilter;
+
+
+
+
     private boolean clockTicked = false;
     private LocationManager gpsLocationManager;
 
     private boolean requested = false;
     private String deviceId;
-//    private final Criteria crit;
+    private DeviceLocationListener deviceLocationListener;
+    //    private final Criteria crit;
 
 
     public BackgroundService() {
@@ -89,11 +90,11 @@ public class BackgroundService extends Service implements LocationListener {
         eventsForSMS.add(EventType.WIFI_LEAVE);
         eventsForSMS.add(EventType.LOCATION);
 
-        safeWifi.add("www.div.lv");
+
 
         Main.mServiceInstance = this;
 
-        ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+
 
 //        crit = new Criteria();
 //        crit.setAccuracy(Criteria.ACCURACY_FINE);
@@ -109,9 +110,11 @@ public class BackgroundService extends Service implements LocationListener {
             mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         }
 
-        batteryStatus = this.registerReceiver(null, ifilter);
+
 
         startGPS();
+
+        Main.getInstance().healthCheck(); // Send Healthcheck message, if needed.
 
         return START_NOT_STICKY;
 
@@ -124,110 +127,8 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    /**
-     * Is device in safe zone?
-     * Safe zone = zone within particular WiFi network range
-     *
-     * @return
-     */
-    private boolean isInSafeZone() {
-        //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
-
-        String wifiNetworks = getWifiNetworks();
-
-        for (String wifiNet : safeWifi) {
-            if (wifiNetworks.indexOf(wifiNet) >= 0) {
-                return true;
-            }
-
-        }
-
-        return false;
-    }
 
 
-    private boolean clockTicked(Date fromDate, Integer tickMsec) {
-        Date now = new Date();
-        if (now.getTime() < fromDate.getTime() + tickMsec) {
-            return false;
-            //This event/state is still alive. Do not overwrite it.
-        } else {
-            return true;
-        }
-    }
-
-
-    private void pollWifiNetworksAndPrepareSMS() {
-
-
-        SMSEvent oldWifiEvent = events.get(EventType.WIFI_ENTER);
-        if (null != oldWifiEvent && !messageOutdated(oldWifiEvent)) {
-            return;
-        }
-
-
-        String wifiNetworks = getWifiNetworks();
-
-
-        SMSEvent wifiEvent = new SMSEvent();
-        if (wifiNetworks.length() > 0) {
-            wifiEvent.setAlertMessage(wifiNetworks);
-            wifiEvent.setEventTime(new Date());
-            wifiEvent.setProblemType(EventType.WIFI_ENTER);
-            wifiEvent.setEventTTLMsec(1000 * 60 * 5);
-            ArrayList<String> phonesToAlert = new ArrayList<>();
-            phonesToAlert.add(Const.PHONE1);
-            wifiEvent.setPhonesToAlert(phonesToAlert);
-        } else {
-            wifiEvent.setAlertMessage("Empty WiFi poll results");
-            wifiEvent.setEventTime(new Date());
-            wifiEvent.setEventTTLMsec(1000 * 60 * 5);
-            wifiEvent.setProblemType(EventType.WIFI_ENTER);
-            ArrayList<String> phonesToAlert = new ArrayList<>();
-            phonesToAlert.add(Const.PHONE1);
-            wifiEvent.setPhonesToAlert(phonesToAlert);
-        }
-
-        events.put(EventType.WIFI_ENTER, wifiEvent);
-    }
-
-    private String getWifiNetworks() {
-
-        if (!clockTicked(wifiCacheDate, getMainDelay())) { //Prevent to poll WiFi too often
-            return wifiCache;
-        }
-
-
-        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        if (wifi.isWifiEnabled() == false) {
-            wifi.setWifiEnabled(true);
-        }
-
-
-        wifi.startScan();
-        // get list of the results in object format ( like an array )
-        List<ScanResult> results = wifi.getScanResults();
-
-        SortedMap<Integer, String> networks = new TreeMap<>(Collections.reverseOrder());
-        for (ScanResult result : results) {
-            networks.put(result.level, result.SSID);
-        }
-
-        Set<Map.Entry<Integer, String>> entries = networks.entrySet();
-        Iterator<Map.Entry<Integer, String>> iterator = entries.iterator();
-        StringBuffer sb = new StringBuffer();
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, String> network = iterator.next();
-            sb.append(network.getValue());
-            sb.append(" ");
-            sb.append(network.getKey());
-            sb.append("; ");
-        }
-
-        wifiCache = sb.toString();
-        wifiCacheDate = new Date();
-        return wifiCache;
-    }
 
     private void sendSMSIfNeeded() {
         SmsManager smsManager = SmsManager.getDefault();
@@ -289,7 +190,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     private boolean messageOutdated(SMSEvent event) {
-        return clockTicked(event.getEventTime(), event.getEventTTLMsec());
+        return Utils.clockTicked(event.getEventTime(), event.getEventTTLMsec());
     }
 
     private boolean shouldWeStop() {
@@ -309,25 +210,11 @@ public class BackgroundService extends Service implements LocationListener {
         return MAIN_DELAY;
     } // once per 1 sec.
 
-    private String getBatteryStatus() {
-        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
-        return String.valueOf(level);
-    }
+
 
 
     public int getSmsSendingDelay() {
         return 2000;
-    }
-
-
-    /**
-     * Checks if a string is null or empty
-     *
-     * @param text
-     * @return
-     */
-    public static boolean isNullOrEmpty(String text) {
-        return text == null || text.length() == 0;
     }
 
 
@@ -366,7 +253,7 @@ public class BackgroundService extends Service implements LocationListener {
             mgr.cancel(this.pi);
             this.pi = null;
         }
-        mLocationManager.removeUpdates(this);
+        mLocationManager.removeUpdates(deviceLocationListener);
     }
 
 
@@ -384,17 +271,17 @@ public class BackgroundService extends Service implements LocationListener {
 //            iProviders++;
 //        }
 
-
+        deviceLocationListener = new DeviceLocationListener();
         // Make sure at least one provider is available
         boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         if (networkProviderEnabled) {
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, deviceLocationListener);
             iProviders++;
         }
 
         boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (gpsProviderEnabled) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, deviceLocationListener);
             iProviders++;
         }
 
@@ -424,52 +311,11 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
-    @Override
-    public void onLocationChanged(Location location) {
-        double latitude = location.getLatitude();
-        double longitude = location.getLongitude();
-        String accuracy = String.format("%.0f", location.getAccuracy());
 
-        buildDeviceId();
 
-        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), String.valueOf(latitude), String.valueOf(longitude), accuracy, String.valueOf(isInSafeZone()), deviceId);
-        EventBus.getDefault().post(eventHttpReport);
 
-    }
 
-    /**
-     * Using IMEI as device ID
-     */
-    private void buildDeviceId() {
 
-        if (null == deviceId) {
-            deviceId = "rrrr";
-//            try {
-//                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-//                deviceId = telephonyManager.getDeviceId();
-//                if (deviceId == null) {
-//                    deviceId = String.valueOf(Math.round(Math.random() * 999999));
-//                }
-//            } catch (Exception e) {
-//                deviceId = String.valueOf(Math.round(Math.random() * 999999));
-//            }
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
 }
 
 
