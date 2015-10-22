@@ -2,6 +2,7 @@ package lv.div.locator;
 
 
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -73,7 +74,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     private boolean requested = false;
     private String deviceId;
-    private final Criteria crit;
+//    private final Criteria crit;
 
 
     public BackgroundService() {
@@ -94,8 +95,8 @@ public class BackgroundService extends Service implements LocationListener {
 
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 
-        crit = new Criteria();
-        crit.setAccuracy(Criteria.ACCURACY_FINE);
+//        crit = new Criteria();
+//        crit.setAccuracy(Criteria.ACCURACY_FINE);
 
     }
 
@@ -112,7 +113,7 @@ public class BackgroundService extends Service implements LocationListener {
 
         startGPS();
 
-        return START_STICKY;
+        return START_NOT_STICKY;
 
     }
 
@@ -376,24 +377,26 @@ public class BackgroundService extends Service implements LocationListener {
         int iProviders = 0;
 
 
-        LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        String bestProvider = mlocManager.getBestProvider(crit, false);
-        if (mLocationManager.isProviderEnabled(bestProvider)) {
-            mLocationManager.requestLocationUpdates(bestProvider, 0, 0, this);
-            iProviders++;
-        }
+//        LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        String bestProvider = mlocManager.getBestProvider(crit, false);
+//        if (mLocationManager.isProviderEnabled(bestProvider)) {
+//            mLocationManager.requestLocationUpdates(bestProvider, 0, 0, this);
+//            iProviders++;
+//        }
 
 
         // Make sure at least one provider is available
-//        if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-//            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
-//            iProviders++;
-//        }
-//
-//        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-//            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
-//            iProviders++;
-//        }
+        boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        if (networkProviderEnabled) {
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
+            iProviders++;
+        }
+
+        boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if (gpsProviderEnabled) {
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
+            iProviders++;
+        }
 
         if (iProviders == 0) {
             sleep();
@@ -407,6 +410,17 @@ public class BackgroundService extends Service implements LocationListener {
         this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
         cal.add(Calendar.SECOND, getMainDelay());
         mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
+
+
+        // Starting process in foreground:
+        Notification note = new Notification.Builder(this).setContentTitle("Locator is on")
+                .setContentIntent(pi)
+                .setContentText("ContentText")
+                .build();
+
+        note.flags|=Notification.FLAG_NO_CLEAR;
+        startForeground(8080, note);
+
 
     }
 
