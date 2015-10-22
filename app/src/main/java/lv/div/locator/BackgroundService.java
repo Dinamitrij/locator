@@ -388,13 +388,13 @@ public class BackgroundService extends Service implements LocationListener {
         // Make sure at least one provider is available
         boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         if (networkProviderEnabled) {
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0, this);
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
             iProviders++;
         }
 
         boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (gpsProviderEnabled) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, this);
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
             iProviders++;
         }
 
