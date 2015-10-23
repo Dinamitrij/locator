@@ -34,9 +34,9 @@ public class Main extends AppCompatActivity {
         return mInstance;
     }
 
-    private Intent batteryStatus;
+
     private WifiManager wifi;
-    private IntentFilter ifilter;
+
     private List<String> safeWifi = new ArrayList<>();
     private String deviceId;
     public Date healthCheckTime = new Date(0);
@@ -51,8 +51,6 @@ public class Main extends AppCompatActivity {
 
         safeWifi.add("www.div.lv");
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        batteryStatus = this.registerReceiver(null, ifilter);
 
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
@@ -81,7 +79,7 @@ public class Main extends AppCompatActivity {
     }
 
     public String getBatteryStatus() {
-        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+        int level = mServiceInstance.batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
         return String.valueOf(level);
     }
 

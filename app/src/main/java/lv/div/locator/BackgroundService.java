@@ -47,11 +47,7 @@ public class BackgroundService extends Service {
 
     private final static String Tag = "---IntentServicetest";
     public static final int MAIN_DELAY = 10;
-
-    private boolean busy = false;
-    private boolean generateEvent = true;
     private PendingIntent pi;
-    private long lGPSTimestamp;
 
     private LocationManager mLocationManager = null;
 
@@ -59,20 +55,9 @@ public class BackgroundService extends Service {
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
     private long smsSendingDelay;
-    private String wifiCache = "";
-    private Date wifiCacheDate = new Date(0);
+    public Intent batteryStatus;
+    private final IntentFilter ifilter;
 
-    private int globalIterations = 0;
-
-
-
-
-
-
-    private boolean clockTicked = false;
-    private LocationManager gpsLocationManager;
-
-    private boolean requested = false;
     private String deviceId;
     private DeviceLocationListener deviceLocationListener;
     //    private final Criteria crit;
@@ -93,11 +78,8 @@ public class BackgroundService extends Service {
 
 
         Main.mServiceInstance = this;
+        ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 
-
-
-//        crit = new Criteria();
-//        crit.setAccuracy(Criteria.ACCURACY_FINE);
 
     }
 
@@ -106,11 +88,11 @@ public class BackgroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         super.onStartCommand(intent, flags, startId);
-        if (null == mLocationManager) {
-            mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        }
+//        if (null == mLocationManager) {
+        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        }
 
-
+        batteryStatus = this.registerReceiver(null, ifilter);
 
         startGPS();
 
@@ -247,7 +229,6 @@ public class BackgroundService extends Service {
 
 
     public void stopGPS() {
-        lGPSTimestamp = 0;
         if (this.pi != null) {
             AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
             mgr.cancel(this.pi);
@@ -290,7 +271,6 @@ public class BackgroundService extends Service {
             return;
         }
 
-        lGPSTimestamp = System.currentTimeMillis();
         mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         cal = new GregorianCalendar();
         i = new Intent(this, TimeoutReceiver.class);
