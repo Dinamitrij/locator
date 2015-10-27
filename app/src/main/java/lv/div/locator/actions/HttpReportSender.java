@@ -36,7 +36,7 @@ public class HttpReportSender {
 
             String deviceId = event.getDeviceId();
 
-            String urlAddress = String.format(Const.REPORT_URL_MASK, latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, deviceId);
+            String urlAddress = String.format(Const.REPORT_URL_MASK, latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId);
 
             NetworkReport networkReport = new NetworkReport();
             networkReport.execute(urlAddress);

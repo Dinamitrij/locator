@@ -7,18 +7,29 @@ public class EventHttpReport {
     private String wifiData;
     private String latitude;
     private String longitude;
+    private String speed;
     private String accuracy;
     private String safe;
     private String deviceId;
 
-    public EventHttpReport(String batteryStatus, String wifiData, String latitude, String longitude, String accuracy, String safe, String deviceId) {
+    public EventHttpReport(String batteryStatus, String wifiData, String latitude, String longitude, String speed, String accuracy, String safe, String deviceId) {
         this.batteryStatus = batteryStatus;
         this.wifiData = wifiData;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.speed = speed;
         this.accuracy = accuracy;
         this.safe = safe;
         this.deviceId = deviceId;
+    }
+
+
+    public String getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(String speed) {
+        this.speed = speed;
     }
 
     public String getBatteryStatus() {

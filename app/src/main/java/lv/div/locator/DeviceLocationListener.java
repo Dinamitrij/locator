@@ -13,15 +13,15 @@ public class DeviceLocationListener implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
 
-        if (isBetterLocation(location)) {
+        boolean betterLocation = isBetterLocation(location);
+        if (betterLocation) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
             String accuracy = String.format("%.0f", location.getAccuracy());
 
-
             String wifiNetworks = Main.getInstance().getWifiNetworks();
             EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                    wifiNetworks, String.valueOf(latitude), String.valueOf(longitude),
+                    wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
                     accuracy, String.valueOf(Main.getInstance().isInSafeZone(wifiNetworks)), Main.getInstance().buildDeviceId());
             EventBus.getDefault().post(eventHttpReport);
         }
