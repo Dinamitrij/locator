@@ -2,13 +2,14 @@ package lv.div.locator;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.location.Location;
 import android.location.LocationManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -21,12 +22,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.NetworkReport;
 
 public class Main extends AppCompatActivity {
-//public class Main extends Application {
+    //public class Main extends Application {
 
     public static BackgroundService mServiceInstance;
     protected static Main mInstance;
@@ -41,7 +43,9 @@ public class Main extends AppCompatActivity {
     private List<String> safeWifi = new ArrayList<>();
     private String deviceId;
     public Date healthCheckTime = new Date(0);
-    public static LocationManager mLocationManager = null;
+    public static LocationManager locationManager = null;
+    public static DeviceLocationListener deviceLocationListener = new DeviceLocationListener();
+    public static Location currentBestLocation;
 
 
     @Override
@@ -50,7 +54,7 @@ public class Main extends AppCompatActivity {
         mInstance = this;
         mServiceInstance = null;
 
-        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         safeWifi.add("www.div.lv");
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -94,7 +98,7 @@ public class Main extends AppCompatActivity {
         Date now = new Date();
         String time = null;
         try {
-            time = URLEncoder.encode("healthCheck from "+buildDeviceId()+" " + now.toString(), Const.UTF8_ENCODING);
+            time = URLEncoder.encode("healthCheck from " + buildDeviceId() + Const.SPACE + now.toString(), Const.UTF8_ENCODING);
         } catch (UnsupportedEncodingException e) {
             time = "0";
         }
@@ -107,7 +111,6 @@ public class Main extends AppCompatActivity {
         healthCheckTime = new Date();
 
     }
-
 
 
     public String getWifiNetworks() {
@@ -133,7 +136,7 @@ public class Main extends AppCompatActivity {
         while (iterator.hasNext()) {
             Map.Entry<Integer, String> network = iterator.next();
             sb.append(network.getValue());
-            sb.append(" ");
+            sb.append(Const.SPACE);
             sb.append(network.getKey());
             sb.append("; ");
         }
@@ -165,24 +168,31 @@ public class Main extends AppCompatActivity {
     }
 
     /**
-     * Using IMEI as device ID
+     * Generating Device ID
      */
     public String buildDeviceId() {
 
         if (null == deviceId) {
-            deviceId = "ddd";
+            try {
+                final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
 
-//            try {
-//                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-//                deviceId = telephonyManager.getDeviceId();
-//                if (deviceId == null) {
-//                    deviceId = String.valueOf(Math.round(Math.random() * 999999));
-//                }
-//            } catch (Exception e) {
-//                deviceId = String.valueOf(Math.round(Math.random() * 999999));
-//            }
+                final String tmDevice, tmSerial, androidId;
+                tmDevice = Const.EMPTY + tm.getDeviceId();
+                tmSerial = Const.EMPTY + tm.getSimSerialNumber();
+                androidId = Const.EMPTY + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+
+                UUID deviceUuid = new UUID(androidId.hashCode(), ((long) tmDevice.hashCode() << 32) | tmSerial.hashCode());
+                deviceId = deviceUuid.toString();
+
+            } catch (Exception e) {
+                deviceId = String.valueOf(Math.round(Math.random() * 999999));
+            }
+
         }
         return deviceId;
     }
+
+
+
 
 }

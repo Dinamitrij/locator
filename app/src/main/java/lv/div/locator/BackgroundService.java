@@ -5,28 +5,17 @@ import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.wifi.ScanResult;
-import android.net.wifi.WifiManager;
-import android.os.BatteryManager;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
-import android.provider.Settings;
 import android.telephony.SmsManager;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -35,11 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
-import de.greenrobot.event.EventBus;
-import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 
 
@@ -49,7 +34,7 @@ public class BackgroundService extends Service {
     public static final int MAIN_DELAY = 10;
     private PendingIntent pi;
 
-//    private LocationManager mLocationManager = null;
+//    private LocationManager locationManager = null;
 
     private Date lastProblematicMoment = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
@@ -76,7 +61,6 @@ public class BackgroundService extends Service {
         eventsForSMS.add(EventType.LOCATION);
 
 
-
         Main.mServiceInstance = this;
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 
@@ -88,8 +72,8 @@ public class BackgroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         super.onStartCommand(intent, flags, startId);
-//        if (null == mLocationManager) {
-//        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        if (null == locationManager) {
+//        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //        }
 
         batteryStatus = this.registerReceiver(null, ifilter);
@@ -107,9 +91,6 @@ public class BackgroundService extends Service {
         Log.d(Tag, "onDestroy()");
         super.onDestroy();
     }
-
-
-
 
 
     private void sendSMSIfNeeded() {
@@ -193,8 +174,6 @@ public class BackgroundService extends Service {
     } // once per 1 sec.
 
 
-
-
     public int getSmsSendingDelay() {
         return 2000;
     }
@@ -234,7 +213,7 @@ public class BackgroundService extends Service {
             mgr.cancel(this.pi);
             this.pi = null;
         }
-        //mLocationManager.removeUpdates(deviceLocationListener);
+        //locationManager.removeUpdates(deviceLocationListener);
     }
 
 
@@ -247,26 +226,26 @@ public class BackgroundService extends Service {
 
 //        LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //        String bestProvider = mlocManager.getBestProvider(crit, false);
-//        if (mLocationManager.isProviderEnabled(bestProvider)) {
-//            mLocationManager.requestLocationUpdates(bestProvider, 0, 0, this);
+//        if (locationManager.isProviderEnabled(bestProvider)) {
+//            locationManager.requestLocationUpdates(bestProvider, 0, 0, this);
 //            iProviders++;
 //        }
 
-        if (null!=deviceLocationListener) {
-            Main.getInstance().mLocationManager.removeUpdates(deviceLocationListener);
-        }
-        deviceLocationListener = new DeviceLocationListener();
+//        if (null != deviceLocationListener) {
+//            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
+//        }
+//        deviceLocationListener = new DeviceLocationListener();
 
         // Make sure at least one provider is available
-        boolean networkProviderEnabled = Main.getInstance().mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        boolean networkProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         if (networkProviderEnabled) {
-            Main.getInstance().mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, deviceLocationListener);
+            Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
             iProviders++;
         }
 
-        boolean gpsProviderEnabled = Main.getInstance().mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        boolean gpsProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (gpsProviderEnabled) {
-            Main.getInstance().mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, deviceLocationListener);
+            Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
             iProviders++;
         }
 
@@ -289,15 +268,11 @@ public class BackgroundService extends Service {
                 .setContentText("ContentText")
                 .build();
 
-        note.flags|=Notification.FLAG_NO_CLEAR;
+        note.flags |= Notification.FLAG_NO_CLEAR;
         startForeground(8080, note);
 
 
     }
-
-
-
-
 
 
 }
