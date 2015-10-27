@@ -49,7 +49,7 @@ public class BackgroundService extends Service {
     public static final int MAIN_DELAY = 10;
     private PendingIntent pi;
 
-    private LocationManager mLocationManager = null;
+//    private LocationManager mLocationManager = null;
 
     private Date lastProblematicMoment = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
@@ -89,7 +89,7 @@ public class BackgroundService extends Service {
 
         super.onStartCommand(intent, flags, startId);
 //        if (null == mLocationManager) {
-        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //        }
 
         batteryStatus = this.registerReceiver(null, ifilter);
@@ -234,7 +234,7 @@ public class BackgroundService extends Service {
             mgr.cancel(this.pi);
             this.pi = null;
         }
-        mLocationManager.removeUpdates(deviceLocationListener);
+        //mLocationManager.removeUpdates(deviceLocationListener);
     }
 
 
@@ -252,17 +252,21 @@ public class BackgroundService extends Service {
 //            iProviders++;
 //        }
 
+        if (null!=deviceLocationListener) {
+            Main.getInstance().mLocationManager.removeUpdates(deviceLocationListener);
+        }
         deviceLocationListener = new DeviceLocationListener();
+
         // Make sure at least one provider is available
-        boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        boolean networkProviderEnabled = Main.getInstance().mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         if (networkProviderEnabled) {
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, deviceLocationListener);
+            Main.getInstance().mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, deviceLocationListener);
             iProviders++;
         }
 
-        boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        boolean gpsProviderEnabled = Main.getInstance().mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (gpsProviderEnabled) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, deviceLocationListener);
+            Main.getInstance().mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, deviceLocationListener);
             iProviders++;
         }
 

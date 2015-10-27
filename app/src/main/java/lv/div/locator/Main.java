@@ -3,6 +3,7 @@ package lv.div.locator;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.LocationManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
@@ -40,6 +41,7 @@ public class Main extends AppCompatActivity {
     private List<String> safeWifi = new ArrayList<>();
     private String deviceId;
     public Date healthCheckTime = new Date(0);
+    public static LocationManager mLocationManager = null;
 
 
     @Override
@@ -48,6 +50,7 @@ public class Main extends AppCompatActivity {
         mInstance = this;
         mServiceInstance = null;
 
+        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         safeWifi.add("www.div.lv");
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -167,7 +170,7 @@ public class Main extends AppCompatActivity {
     public String buildDeviceId() {
 
         if (null == deviceId) {
-            deviceId = "rrrr";
+            deviceId = "ddd";
 
 //            try {
 //                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
