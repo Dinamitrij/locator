@@ -19,5 +19,7 @@ public class Const {
     public static final String EMPTY = "";
     public static final String SPACE = " ";
     public static final int DELAY_15_SEC = 1000 * 15 * 1;
-//    public static final int HEALTH_CHECK_TIME_MSEC = 1000; // 1 sec (for debugging)
+    //    public static final int HEALTH_CHECK_TIME_MSEC = 1000; // 1 sec (for debugging)
+    public static final String WIFI_VALUES_SEPARATOR = ";";
+    public static final String WIFI_NAME_SEPARATOR = ":";
 }

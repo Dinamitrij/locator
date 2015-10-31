@@ -7,7 +7,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.location.Location;
 import android.location.LocationManager;
 import android.os.IBinder;
 import android.os.SystemClock;
@@ -25,24 +24,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import de.greenrobot.event.EventBus;
+import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 
 
 public class BackgroundService extends Service {
 
-    private final static String Tag = "---IntentServicetest";
     public static final int MAIN_DELAY = 10;
-    private PendingIntent pi;
+    private final static String Tag = "---IntentServicetest";
+    private final IntentFilter ifilter;
 
 //    private LocationManager locationManager = null;
-
+    public Intent batteryStatus;
+    private PendingIntent pi;
     private Date lastProblematicMoment = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
     private long smsSendingDelay;
-    public Intent batteryStatus;
-    private final IntentFilter ifilter;
-
     private String deviceId;
     private DeviceLocationListener deviceLocationListener;
     //    private final Criteria crit;
@@ -72,6 +71,8 @@ public class BackgroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         super.onStartCommand(intent, flags, startId);
+
+
 //        if (null == locationManager) {
 //        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 //        }
@@ -80,9 +81,15 @@ public class BackgroundService extends Service {
 
         startGPS();
 
-        Main.getInstance().healthCheck(); // Send Healthcheck message, if needed.
-        Main.getInstance().sendAlert("Locator started");
-        return START_NOT_STICKY;
+//        Main.getInstance().healthCheck(); // Send Healthcheck message, if needed.
+
+        if (Main.getInstance().wifiNetworksCache.isEmpty()) {
+            Main.getInstance().getWifiNetworks();
+        }
+
+
+//        Main.getInstance().sendAlert("Locator started");
+        return START_STICKY;
 
     }
 
@@ -213,7 +220,12 @@ public class BackgroundService extends Service {
             mgr.cancel(this.pi);
             this.pi = null;
         }
-        //locationManager.removeUpdates(deviceLocationListener);
+
+        if (Main.getInstance().isInSafeZone() && Main.getInstance().locationRequested) {
+            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
+            Main.getInstance().locationRequested = false;
+        }
+
     }
 
 
@@ -236,24 +248,53 @@ public class BackgroundService extends Service {
 //        }
 //        deviceLocationListener = new DeviceLocationListener();
 
-        // Make sure at least one provider is available
-        boolean networkProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        if (networkProviderEnabled) {
-            Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
-            iProviders++;
-        }
 
-        boolean gpsProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        if (gpsProviderEnabled) {
-            Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
-            iProviders++;
-        }
+        boolean inSafeZone = Main.getInstance().isInSafeZone();
+        if (!inSafeZone) { // Only if we're out of safe zone:
 
-        if (iProviders == 0) {
+            // Make sure at least one provider is available
+            boolean networkProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            if (networkProviderEnabled) {
+                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
+                iProviders++;
+            }
+
+            boolean gpsProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            if (gpsProviderEnabled) {
+                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
+                iProviders++;
+            }
+
+            if (iProviders == 0) {
+                sleep();
+                return;
+            } else {
+                Main.getInstance().locationRequested = true;
+            }
+
+
+        } else {
+            // Report safe zone:
+            reportSafeZone();
             sleep();
-            return;
         }
 
+        startMainProcessInForeground();
+
+    }
+
+    private void reportSafeZone() {
+        String wifiNetworks = Main.getInstance().getWifiNetworks();
+        EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
+                wifiNetworks, "0.0", "0.0", "0", "0", "safe", Main.getInstance().buildDeviceId());
+        EventBus.getDefault().post(eventHttpReport);
+    }
+
+
+    private void startMainProcessInForeground() {
+        AlarmManager mgr;
+        GregorianCalendar cal;
+        Intent i;
         mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         cal = new GregorianCalendar();
         i = new Intent(this, TimeoutReceiver.class);
@@ -270,8 +311,6 @@ public class BackgroundService extends Service {
 
         note.flags |= Notification.FLAG_NO_CLEAR;
         startForeground(8080, note);
-
-
     }
 
 

@@ -19,9 +19,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +42,14 @@ public class Main extends AppCompatActivity {
     public static BackgroundService mServiceInstance;
     public static Map<ConfigurationKey, String> config = new HashMap<>();
     public static LocationManager locationManager = null;
+    public static boolean locationRequested = false; // Initially - no location request
     public static DeviceLocationListener deviceLocationListener = new DeviceLocationListener();
     public static Location currentBestLocation;
-    protected static Main mInstance;
+    public static String wifiCache = "";
+    public static Set<String> wifiNetworksCache = new HashSet<>();
+
+    public static Date wifiCacheDate = new Date(0);
+    public static Main mInstance;
     public Date healthCheckTime = new Date(0);
     private WifiManager wifi;
     private List<String> safeWifi = new ArrayList<>();
@@ -52,37 +59,6 @@ public class Main extends AppCompatActivity {
     public static Main getInstance() {
         return mInstance;
     }
-
-    public static void sendAlert(String text) {
-//        if (!Main.getInstance().config.isEmpty()) {
-//            NetworkReport1 networkReport = new NetworkReport1();
-//
-//            try {
-//                String reportAddress = String.format(Main.getInstance().config.get(ConfigurationKey.DEVICE_SEND_ALERT_ADDRESS),
-//                        Main.getInstance().config.get(ConfigurationKey.SEND_ALERT_ADDRESS_PARAM1),
-//                        URLEncoder.encode(Main.getInstance().config.get(ConfigurationKey.DEVICE_ALIAS) + text, Const.UTF8_ENCODING));
-//
-//                networkReport.execute(reportAddress);
-//            } catch (Exception e) {
-//                // Cannot send alert!
-//                int a=1+2;
-//            }
-//
-//
-//        }
-
-    }
-
-
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        stopService(new Intent(Main.this,
-//                BackgroundService.class));
-//        if (isService) {
-//            isService = false;
-//        }
-//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,10 +70,6 @@ public class Main extends AppCompatActivity {
 
         safeWifi.add("www.div.lv");
 
-//        NetworkConfigurationLoader confLoader = new NetworkConfigurationLoader();
-//        confLoader.execute(String.format(Const.CONFIG_DOWNLOAD_URL_MASK, buildDeviceId()));
-
-
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 
         // Create HTTP report sender:
@@ -106,12 +78,6 @@ public class Main extends AppCompatActivity {
         ConfigLoader configLoader = new ConfigLoader();
         configLoader.execute();
 
-//        Main.getInstance().sendAlert("Locator started");
-
-
-//        Intent i = new Intent(Main.this, BackgroundService.class);
-//        startService(i);
-//        finish();
     }
 
     public void startApplication() {
@@ -153,10 +119,12 @@ public class Main extends AppCompatActivity {
     }
 
     public String getWifiNetworks() {
-
-
         if (wifi.isWifiEnabled() == false) {
             wifi.setWifiEnabled(true);
+        }
+
+        if (!Utils.clockTicked(wifiCacheDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
+            return wifiCache;
         }
 
 
@@ -172,16 +140,18 @@ public class Main extends AppCompatActivity {
         Set<Map.Entry<Integer, String>> entries = networks.entrySet();
         Iterator<Map.Entry<Integer, String>> iterator = entries.iterator();
         StringBuffer sb = new StringBuffer();
+        wifiNetworksCache.clear();
         while (iterator.hasNext()) {
             Map.Entry<Integer, String> network = iterator.next();
             sb.append(network.getValue());
+            wifiNetworksCache.add(network.getValue());
             sb.append(Const.SPACE);
             sb.append(network.getKey());
             sb.append("; ");
         }
 
-//        wifiCache = sb.toString();
-//        wifiCacheDate = new Date();
+        wifiCache = sb.toString();
+        wifiCacheDate = new Date();
         return sb.toString();
     }
 
@@ -189,19 +159,37 @@ public class Main extends AppCompatActivity {
      * Is device in safe zone?
      * Safe zone = zone within particular WiFi network range
      *
-     * @param wifiNetworks
      * @return
      */
-    public boolean isInSafeZone(String wifiNetworks) {
+    public boolean isInSafeZone() {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
 
-        for (String wifiNet : safeWifi) {
-            if (wifiNetworks.indexOf(wifiNet) >= 0) {
+//        for (String wifiNet : safeWifi) {
+//            if (wifiNetworks.indexOf(wifiNet) >= 0) {
+//                return true;
+//            }
+//
+//        }
+
+        String refreshedWifiData = getWifiNetworks();
+
+        String safeWifis = config.get(ConfigurationKey.SAFE_ZONE_WIFI);
+        String[] split = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
+
+        for (String safeNetwork : wifiNetworksCache) {
+            if (safeWifis.indexOf(safeNetwork)>=0) {
                 return true;
             }
 
+//            String safeNetworkName = safeNetwork;
+//            final String[] netName = safeNetworkName.split(Const.WIFI_NAME_SEPARATOR);
+//            if (netName.length > 1) {
+//                safeNetworkName = netName[0];
+//            }
+//            if (refreshedWifiData.indexOf(safeNetworkName) >= 0) {
+//                return true;
+//            }
         }
-
         return false;
     }
 
