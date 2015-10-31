@@ -81,7 +81,7 @@ public class BackgroundService extends Service {
         startGPS();
 
         Main.getInstance().healthCheck(); // Send Healthcheck message, if needed.
-
+        Main.getInstance().sendAlert("Locator started");
         return START_NOT_STICKY;
 
     }
