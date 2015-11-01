@@ -83,7 +83,15 @@ public class Main extends AppCompatActivity {
     public void startApplication() {
         Intent i = new Intent(Main.this, BackgroundService.class);
         startService(i);
-        finish();
+//        finish();
+        minimizeApp();
+    }
+
+    private void minimizeApp() {
+        Intent startMain = new Intent(Intent.ACTION_MAIN);
+        startMain.addCategory(Intent.CATEGORY_HOME);
+        startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(startMain);
     }
 
     public void startup() {

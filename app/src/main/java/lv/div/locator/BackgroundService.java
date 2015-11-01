@@ -221,10 +221,10 @@ public class BackgroundService extends Service {
             this.pi = null;
         }
 
-        if (Main.getInstance().isInSafeZone() && Main.getInstance().locationRequested) {
-            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
-            Main.getInstance().locationRequested = false;
-        }
+//        if (Main.getInstance().isInSafeZone() && Main.getInstance().locationRequested) {
+//            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
+//            Main.getInstance().locationRequested = false;
+//        }
 
     }
 
@@ -246,36 +246,50 @@ public class BackgroundService extends Service {
 //        if (null != deviceLocationListener) {
 //            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
 //        }
-//        deviceLocationListener = new DeviceLocationListener();
+
 
 
         boolean inSafeZone = Main.getInstance().isInSafeZone();
-        if (!inSafeZone) { // Only if we're out of safe zone:
+        if (!inSafeZone)     { // Only if we're out of safe zone:
+
+            deviceLocationListener = new DeviceLocationListener();
 
             // Make sure at least one provider is available
             boolean networkProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             if (networkProviderEnabled) {
-                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
+//                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
+                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, deviceLocationListener);
                 iProviders++;
             }
 
+
             boolean gpsProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             if (gpsProviderEnabled) {
-                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
+//                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
+                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, deviceLocationListener);
                 iProviders++;
             }
+//        } else {
+//            // Report safe zone:
+//            reportSafeZone();
+//        }
 
             if (iProviders == 0) {
                 sleep();
                 return;
             } else {
-                Main.getInstance().locationRequested = true;
+//                Main.getInstance().locationRequested = true;
             }
 
 
         } else {
             // Report safe zone:
             reportSafeZone();
+
+            if (null != deviceLocationListener) {
+                Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
+            }
+
             sleep();
         }
 
