@@ -5,9 +5,13 @@ import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.telephony.SmsManager;
@@ -29,13 +33,13 @@ import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 
 
-public class BackgroundService extends Service {
+public class BackgroundService extends Service implements LocationListener {
 
     public static final int MAIN_DELAY = 10;
     private final static String Tag = "---IntentServicetest";
     private final IntentFilter ifilter;
 
-//    private LocationManager locationManager = null;
+    private LocationManager mLocationManager = null;
     public Intent batteryStatus;
     private PendingIntent pi;
     private Date lastProblematicMoment = new Date(0);
@@ -73,9 +77,9 @@ public class BackgroundService extends Service {
         super.onStartCommand(intent, flags, startId);
 
 
-//        if (null == locationManager) {
-//        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//        }
+        if (null == mLocationManager) {
+            mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        }
 
         batteryStatus = this.registerReceiver(null, ifilter);
 
@@ -100,75 +104,8 @@ public class BackgroundService extends Service {
     }
 
 
-    private void sendSMSIfNeeded() {
-        SmsManager smsManager = SmsManager.getDefault();
-
-        Iterator<EventType> iterator = events.keySet().iterator();
-        while (iterator.hasNext()) {
-
-            EventType key = iterator.next();
-            SMSEvent smsEvent = events.get(key);
-            boolean smsSent = smsEvent.isSmsSent();
-            if (smsSent) {
-                continue;
-            }
-
-
-            if (eventsForSMS.contains(smsEvent.getProblemType())) {
-
-//            Date now = new Date();
-//            Date eventTime = smsEvent.getEventTime();
-
-//                        (now.getTime() - eventTime.getTime())>=smsEvent.getSmsRepeatDelayMsec()
-
-                try {
-                    List<String> phonesToAlert = smsEvent.getPhonesToAlert();
-                    for (String phone : phonesToAlert) {
-
-//                        smsManager.sendTextMessage(phone, null, smsEvent.getProblemType() + " " + smsEvent.getEventTime(), null, null);
-//                        smsManager.sendTextMessage(phone, null, smsEvent.getProblemType() + " " + smsEvent.getAlertMessage(), null, null);
-                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(Const.TIME_24H_FORMAT);
-                        String time = simpleDateFormat.format(new Date());
-
-                        String alertMessage = smsEvent.getAlertMessage();
-                        if (alertMessage.length() > Const.MAX_MESSAGE_SIZE) {
-                            alertMessage = alertMessage.substring(0, Const.MAX_MESSAGE_SIZE);
-                        }
-//                        smsManager.sendTextMessage(phone, null, globalIterations + " " + time + " " + alertMessage, null, null);
-
-                        SystemClock.sleep(getSmsSendingDelay());
-                    }
-                    smsEvent.setSmsSent(true);
-//                    iterator.remove();
-
-                    boolean outdated = messageOutdated(smsEvent);
-                    if (outdated) {
-                        iterator.remove();
-//                        events.remove(key);
-                    }
-
-
-                } catch (Exception e) {
-                    // be quiet
-                }
-            }
-
-
-        }
-
-
-    }
-
     private boolean messageOutdated(SMSEvent event) {
         return Utils.clockTicked(event.getEventTime(), event.getEventTTLMsec());
-    }
-
-    private boolean shouldWeStop() {
-        // TODO: Add logic here, if applicable
-
-        //return (globalIterations++) > 2000;
-        return false;
-
     }
 
     /**
@@ -180,10 +117,6 @@ public class BackgroundService extends Service {
         return MAIN_DELAY;
     } // once per 1 sec.
 
-
-    public int getSmsSendingDelay() {
-        return 2000;
-    }
 
 
     @Override
@@ -198,7 +131,7 @@ public class BackgroundService extends Service {
         Intent i = new Intent(this, MainReceiver.class);
         Calendar cal = new GregorianCalendar();
 
-        cal.add(Calendar.SECOND, 10);
+        cal.add(Calendar.SECOND, getMainDelay());
 
         this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
         mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
@@ -221,9 +154,37 @@ public class BackgroundService extends Service {
             this.pi = null;
         }
 
-//        if (Main.getInstance().isInSafeZone() && Main.getInstance().locationRequested) {
-//            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
-//            Main.getInstance().locationRequested = false;
+
+
+/*
+        boolean inSafeZone = Main.getInstance().isInSafeZone();
+        if (inSafeZone)     {
+
+            if (null != deviceLocationListener && null != deviceLocationListener) {
+                locationManager.removeUpdates(deviceLocationListener);
+//                Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
+            }
+
+        }
+*/
+
+
+        boolean inSafeZone = Main.getInstance().isInSafeZone();
+        if (inSafeZone && null!=mLocationManager)     {
+
+            mLocationManager.removeUpdates(this);
+
+        }
+
+
+
+
+
+
+
+
+//        if (Main.getInstance().isInSafeZone()) {
+//            locationManager.removeUpdates(deviceLocationListener);
 //        }
 
     }
@@ -249,7 +210,7 @@ public class BackgroundService extends Service {
 
 
 
-        boolean inSafeZone = Main.getInstance().isInSafeZone();
+/*        boolean inSafeZone = Main.getInstance().isInSafeZone();
         if (!inSafeZone)     { // Only if we're out of safe zone:
 
             deviceLocationListener = new DeviceLocationListener();
@@ -277,21 +238,51 @@ public class BackgroundService extends Service {
             if (iProviders == 0) {
                 sleep();
                 return;
-            } else {
-//                Main.getInstance().locationRequested = true;
             }
 
 
         } else {
-            // Report safe zone:
             reportSafeZone();
+        }*/
 
-            if (null != deviceLocationListener) {
-                Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
+
+
+
+
+
+        boolean inSafeZone = Main.getInstance().isInSafeZone();
+        if (!inSafeZone) { // Only if we're out of safe zone:
+
+
+            // Make sure at least one provider is available
+            boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            if (networkProviderEnabled) {
+                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+                iProviders++;
             }
 
-            sleep();
+            boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            if (gpsProviderEnabled) {
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+                iProviders++;
+            }
+
+            if (iProviders == 0) {
+                sleep();
+                return;
+            }
+
+        } else {
+            reportSafeZone();
         }
+
+
+
+
+
+
+
+
 
         startMainProcessInForeground();
 
@@ -326,6 +317,130 @@ public class BackgroundService extends Service {
         note.flags |= Notification.FLAG_NO_CLEAR;
         startForeground(8080, note);
     }
+
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+//        double latitude = location.getLatitude();
+//        double longitude = location.getLongitude();
+//        String accuracy = String.format("%.0f", location.getAccuracy());
+//
+//        String s = Main.getInstance().buildDeviceId();
+////
+//        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), String.valueOf(latitude), String.valueOf(longitude), accuracy, String.valueOf(isInSafeZone()), deviceId);
+//        EventBus.getDefault().post(eventHttpReport);
+
+
+        boolean betterLocation = isBetterLocation(location);
+        if (betterLocation) {
+            double latitude = location.getLatitude();
+            double longitude = location.getLongitude();
+            String accuracy = String.format("%.0f", location.getAccuracy());
+
+            String wifiNetworks = Main.getInstance().getWifiNetworks();
+            EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
+                    wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
+                    accuracy, "n/a", Main.getInstance().buildDeviceId());
+            EventBus.getDefault().post(eventHttpReport);
+        }
+
+
+
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+
+
+    /**
+     * Determines whether one Location reading is better than the current Location fix
+     *
+     * @param location The new Location that you want to evaluate
+     */
+    public boolean isBetterLocation(Location location) {
+        boolean result = false;
+
+        if (Main.getInstance().currentBestLocation == null) {
+            // A new location is always better than no location
+            Main.getInstance().currentBestLocation = location;
+            return true;
+        }
+
+        // Check whether the new location fix is newer or older
+        long timeDelta = location.getTime() - Main.getInstance().currentBestLocation.getTime();
+        boolean isSignificantlyNewer = timeDelta > Const.DELAY_15_SEC;
+        boolean isSignificantlyOlder = timeDelta < -Const.DELAY_15_SEC;
+        boolean isNewer = timeDelta > 0;
+
+        // If it's been more than XX sec since the current location, use the new location
+        // because the user has likely moved
+        if (isSignificantlyNewer) {
+            Main.getInstance().currentBestLocation = location;
+            result = true;
+            // If the new location is more than XX sec older, it must be worse
+        } else if (isSignificantlyOlder) {
+            result = false;
+            return result;
+        }
+
+        // Check whether the new location fix is more or less accurate
+        int accuracyDelta = (int) (location.getAccuracy() - Main.getInstance().currentBestLocation.getAccuracy());
+        boolean isLessAccurate = accuracyDelta > 0;
+        boolean isMoreAccurate = accuracyDelta < 0;
+        boolean isSignificantlyLessAccurate = accuracyDelta > 200;
+
+        // Check if the old and new location are from the same provider
+        boolean isFromSameProvider = isSameProvider(location.getProvider(),
+                Main.getInstance().currentBestLocation.getProvider());
+
+        // Determine location quality using a combination of timeliness and accuracy
+        if (isMoreAccurate) {
+            Main.getInstance().currentBestLocation = location;
+            result = true;
+        } else if (isNewer && !isLessAccurate) {
+            Main.getInstance().currentBestLocation = location;
+            result = true;
+        } else if (isNewer && !isSignificantlyLessAccurate && isFromSameProvider) {
+            Main.getInstance().currentBestLocation = location;
+            result = true;
+        }
+
+
+        return result;
+    }
+
+    /**
+     * Checks whether two providers are the same
+     */
+    private boolean isSameProvider(String provider1, String provider2) {
+        if (provider1 == null) {
+            return provider2 == null;
+        }
+        return provider1.equals(provider2);
+    }
+
+
+
+
+
+
+
+
 
 
 }

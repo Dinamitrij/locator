@@ -19,7 +19,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -172,12 +171,21 @@ public class Main extends AppCompatActivity {
     public boolean isInSafeZone() {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
 
-//        for (String wifiNet : safeWifi) {
-//            if (wifiNetworks.indexOf(wifiNet) >= 0) {
-//                return true;
-//            }
+
+//        Date date = new Date();   // given date
+//        Calendar calendar = GregorianCalendar.getInstance(); // creates a new calendar instance
+//        calendar.setTime(date);   // assigns calendar to given date
+//        calendar.get(Calendar.HOUR_OF_DAY); // gets hour in 24h format
+//        calendar.get(Calendar.HOUR);        // gets hour in 12h format
+//        calendar.get(Calendar.MONTH);       // gets month number, NOTE this is zero based!
 //
-//        }
+//        int i = calendar.get(Calendar.MINUTE);
+//        boolean insafezone = (i % 2) == 0;
+//        return insafezone;
+
+
+        boolean result = false;
+
 
         String refreshedWifiData = getWifiNetworks();
 
@@ -185,8 +193,9 @@ public class Main extends AppCompatActivity {
         String[] split = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
 
         for (String safeNetwork : wifiNetworksCache) {
-            if (safeWifis.indexOf(safeNetwork)>=0) {
-                return true;
+            if (safeWifis.indexOf(safeNetwork) >= 0) {
+                result = true;
+                break;
             }
 
 //            String safeNetworkName = safeNetwork;
@@ -198,7 +207,10 @@ public class Main extends AppCompatActivity {
 //                return true;
 //            }
         }
-        return false;
+
+
+        return result;
+
     }
 
     /**
