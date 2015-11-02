@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -15,6 +16,9 @@ import android.telephony.TelephonyManager;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -73,6 +77,8 @@ public class Main extends AppCompatActivity {
 
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
+
+        enableMobileData();
 
         ConfigLoader configLoader = new ConfigLoader();
         configLoader.execute();
@@ -162,6 +168,7 @@ public class Main extends AppCompatActivity {
         return sb.toString();
     }
 
+
     /**
      * Is device in safe zone?
      * Safe zone = zone within particular WiFi network range
@@ -172,16 +179,18 @@ public class Main extends AppCompatActivity {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
 
 
-//        Date date = new Date();   // given date
-//        Calendar calendar = GregorianCalendar.getInstance(); // creates a new calendar instance
-//        calendar.setTime(date);   // assigns calendar to given date
-//        calendar.get(Calendar.HOUR_OF_DAY); // gets hour in 24h format
-//        calendar.get(Calendar.HOUR);        // gets hour in 12h format
-//        calendar.get(Calendar.MONTH);       // gets month number, NOTE this is zero based!
-//
-//        int i = calendar.get(Calendar.MINUTE);
-//        boolean insafezone = (i % 2) == 0;
-//        return insafezone;
+/*
+        Date date = new Date();   // given date
+        Calendar calendar = GregorianCalendar.getInstance(); // creates a new calendar instance
+        calendar.setTime(date);   // assigns calendar to given date
+        calendar.get(Calendar.HOUR_OF_DAY); // gets hour in 24h format
+        calendar.get(Calendar.HOUR);        // gets hour in 12h format
+        calendar.get(Calendar.MONTH);       // gets month number, NOTE this is zero based!
+
+        int i = calendar.get(Calendar.MINUTE);
+        boolean insafezone = (i % 2) == 0;
+        return insafezone;
+*/
 
 
         boolean result = false;
@@ -197,19 +206,28 @@ public class Main extends AppCompatActivity {
                 result = true;
                 break;
             }
-
-//            String safeNetworkName = safeNetwork;
-//            final String[] netName = safeNetworkName.split(Const.WIFI_NAME_SEPARATOR);
-//            if (netName.length > 1) {
-//                safeNetworkName = netName[0];
-//            }
-//            if (refreshedWifiData.indexOf(safeNetworkName) >= 0) {
-//                return true;
-//            }
         }
 
-
         return result;
+
+    }
+
+    public void enableMobileData() {
+
+        try {
+            final ConnectivityManager conman = (ConnectivityManager) getBaseContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            final Class conmanClass = Class.forName(conman.getClass().getName());
+            final Field connectivityManagerField = conmanClass.getDeclaredField("mService");
+            connectivityManagerField.setAccessible(true);
+            final Object connectivityManager = connectivityManagerField.get(conman);
+            final Class connectivityManagerClass = Class.forName(connectivityManager.getClass().getName());
+            final Method setMobileDataEnabledMethod = connectivityManagerClass.getDeclaredMethod("setMobileDataEnabled", Boolean.TYPE);
+            setMobileDataEnabledMethod.setAccessible(true);
+
+            setMobileDataEnabledMethod.invoke(connectivityManager, true);
+        } catch (Exception e) {
+            // quiet! Cannot switch!
+        }
 
     }
 
