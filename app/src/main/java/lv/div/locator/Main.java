@@ -78,8 +78,6 @@ public class Main extends AppCompatActivity {
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
 
-        enableMobileData();
-
         ConfigLoader configLoader = new ConfigLoader();
         configLoader.execute();
 
@@ -117,7 +115,8 @@ public class Main extends AppCompatActivity {
         Date now = new Date();
         String time = null;
         try {
-            time = URLEncoder.encode("healthCheck from " + config.get(ConfigurationKey.DEVICE_ALIAS) + Const.SPACE + now.toString(), Const.UTF8_ENCODING);
+            String s = config.get(ConfigurationKey.DEVICE_ALIAS);
+            time = URLEncoder.encode("healthCheck from " + s + Const.SPACE + now.toString(), Const.UTF8_ENCODING);
         } catch (UnsupportedEncodingException e) {
             time = "0";
         }
@@ -136,9 +135,12 @@ public class Main extends AppCompatActivity {
             wifi.setWifiEnabled(true);
         }
 
-        if (!Utils.clockTicked(wifiCacheDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-            return wifiCache;
-        }
+//  Is it a problem root??
+// Let's rescan networks every time!
+//
+//        if (!Utils.clockTicked(wifiCacheDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
+//            return wifiCache;
+//        }
 
 
         wifi.startScan();
@@ -156,6 +158,7 @@ public class Main extends AppCompatActivity {
         wifiNetworksCache.clear();
         while (iterator.hasNext()) {
             Map.Entry<Integer, String> network = iterator.next();
+            sb.append(Const.SPACE);
             sb.append(network.getValue());
             wifiNetworksCache.add(network.getValue());
             sb.append(Const.SPACE);
@@ -175,7 +178,7 @@ public class Main extends AppCompatActivity {
      *
      * @return
      */
-    public boolean isInSafeZone() {
+    public String isInSafeZone() {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
 
 
@@ -193,41 +196,35 @@ public class Main extends AppCompatActivity {
 */
 
 
-        boolean result = false;
+        String result = Const.EMPTY;
 
-
-        String refreshedWifiData = getWifiNetworks();
+        String currentVisibleWifiNetworks = getWifiNetworks();
 
         String safeWifis = config.get(ConfigurationKey.SAFE_ZONE_WIFI);
-        String[] split = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
+        String[] safeWifiPatternsWithNames = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
+        for (String safeWifiPatternWithName : safeWifiPatternsWithNames) {
 
-        for (String safeNetwork : wifiNetworksCache) {
-            if (safeWifis.indexOf(safeNetwork) >= 0) {
-                result = true;
+            String[] wifiValueAndAlias = safeWifiPatternWithName.split(Const.WIFI_NAME_SEPARATOR);
+            if (currentVisibleWifiNetworks.matches(wifiValueAndAlias[0])) {
+                result = wifiValueAndAlias[1];
                 break;
             }
+
         }
+
+
+
+
+//        String[] split = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
+//
+//        for (String safeNetwork : wifiNetworksCache) {
+//            if (safeWifis.indexOf(safeNetwork) >= 0) {
+//                result = true;
+//                break;
+//            }
+//        }
 
         return result;
-
-    }
-
-    public void enableMobileData() {
-
-        try {
-            final ConnectivityManager conman = (ConnectivityManager) getBaseContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-            final Class conmanClass = Class.forName(conman.getClass().getName());
-            final Field connectivityManagerField = conmanClass.getDeclaredField("mService");
-            connectivityManagerField.setAccessible(true);
-            final Object connectivityManager = connectivityManagerField.get(conman);
-            final Class connectivityManagerClass = Class.forName(connectivityManager.getClass().getName());
-            final Method setMobileDataEnabledMethod = connectivityManagerClass.getDeclaredMethod("setMobileDataEnabled", Boolean.TYPE);
-            setMobileDataEnabledMethod.setAccessible(true);
-
-            setMobileDataEnabledMethod.invoke(connectivityManager, true);
-        } catch (Exception e) {
-            // quiet! Cannot switch!
-        }
 
     }
 

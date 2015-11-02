@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import de.greenrobot.event.EventBus;
+import lv.div.locator.conf.ConfigurationKey;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 
@@ -37,6 +38,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     public static final int MAIN_DELAY = 10;
     private final static String Tag = "---IntentServicetest";
+    public static final String DEFAULT_STATE = "n/a";
     private final IntentFilter ifilter;
 
     private LocationManager mLocationManager = null;
@@ -169,8 +171,9 @@ public class BackgroundService extends Service implements LocationListener {
 */
 
 
-        boolean inSafeZone = Main.getInstance().isInSafeZone();
-        if (inSafeZone && null!=mLocationManager)     {
+//        boolean inSafeZone = Main.getInstance().isInSafeZone();
+        String safeZoneName = Main.getInstance().isInSafeZone();
+        if (!Const.EMPTY.equals(safeZoneName) && null!=mLocationManager)     {
 
             mLocationManager.removeUpdates(this);
 
@@ -250,8 +253,8 @@ public class BackgroundService extends Service implements LocationListener {
 
 
 
-        boolean inSafeZone = Main.getInstance().isInSafeZone();
-        if (!inSafeZone) { // Only if we're out of safe zone:
+        String wifiZoneName = Main.getInstance().isInSafeZone();
+        if (Const.EMPTY.equals(wifiZoneName)) { // Only if we're out of safe zone:
 
 
             // Make sure at least one provider is available
@@ -273,7 +276,7 @@ public class BackgroundService extends Service implements LocationListener {
             }
 
         } else {
-            reportSafeZone();
+            reportSafeZone(wifiZoneName);
         }
 
 
@@ -288,10 +291,11 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
-    private void reportSafeZone() {
+    private void reportSafeZone(String wifiZoneName) {
         String wifiNetworks = Main.getInstance().getWifiNetworks();
+        String deviceId = Main.getInstance().buildDeviceId();
         EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                wifiNetworks, "0.0", "0.0", "0", "0", "safe", Main.getInstance().buildDeviceId());
+                wifiNetworks, "0.0", "0.0", "0", "0", "safe", deviceId);
         EventBus.getDefault().post(eventHttpReport);
     }
 
@@ -341,7 +345,7 @@ public class BackgroundService extends Service implements LocationListener {
             String wifiNetworks = Main.getInstance().getWifiNetworks();
             EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
                     wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
-                    accuracy, "n/a", Main.getInstance().buildDeviceId());
+                    accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
             EventBus.getDefault().post(eventHttpReport);
         }
 
