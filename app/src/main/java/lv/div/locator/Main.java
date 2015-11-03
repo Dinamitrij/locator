@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationManager;
-import android.net.ConnectivityManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -16,9 +15,6 @@ import android.telephony.TelephonyManager;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -86,7 +82,6 @@ public class Main extends AppCompatActivity {
     public void startApplication() {
         Intent i = new Intent(Main.this, BackgroundService.class);
         startService(i);
-//        finish();
         minimizeApp();
     }
 
@@ -98,7 +93,6 @@ public class Main extends AppCompatActivity {
     }
 
     public void startup() {
-//        wakeLock1(true);
         Intent i = new Intent(this, BackgroundService.class);
         startService(i);
     }
@@ -135,12 +129,9 @@ public class Main extends AppCompatActivity {
             wifi.setWifiEnabled(true);
         }
 
-//  Is it a problem root??
-// Let's rescan networks every time!
-//
-//        if (!Utils.clockTicked(wifiCacheDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-//            return wifiCache;
-//        }
+        if (!Utils.clockTicked(wifiCacheDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
+            return wifiCache;
+        }
 
 
         wifi.startScan();
@@ -211,18 +202,6 @@ public class Main extends AppCompatActivity {
             }
 
         }
-
-
-
-
-//        String[] split = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
-//
-//        for (String safeNetwork : wifiNetworksCache) {
-//            if (safeWifis.indexOf(safeNetwork) >= 0) {
-//                result = true;
-//                break;
-//            }
-//        }
 
         return result;
 

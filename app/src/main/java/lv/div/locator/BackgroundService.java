@@ -117,7 +117,7 @@ public class BackgroundService extends Service implements LocationListener {
      */
     private int getMainDelay() {
         return MAIN_DELAY;
-    } // once per 1 sec.
+    } // once per 10 sec.
 
 
 
