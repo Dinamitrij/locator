@@ -13,22 +13,19 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.SystemClock;
-import android.telephony.SmsManager;
 import android.util.Log;
 
-import java.text.SimpleDateFormat;
+import java.net.URLEncoder;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import de.greenrobot.event.EventBus;
+import lv.div.locator.actions.NetworkReport;
 import lv.div.locator.conf.ConfigurationKey;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
@@ -37,14 +34,13 @@ import lv.div.locator.events.EventType;
 public class BackgroundService extends Service implements LocationListener {
 
     public static final int MAIN_DELAY = 10;
-    private final static String Tag = "---IntentServicetest";
     public static final String DEFAULT_STATE = "n/a";
+    private final static String Tag = "---IntentServicetest";
     private final IntentFilter ifilter;
-
-    private LocationManager mLocationManager = null;
     public Intent batteryStatus;
+    private LocationManager mLocationManager = null;
     private PendingIntent pi;
-    private Date lastProblematicMoment = new Date(0);
+    private Date heartBeatDate = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
     private long smsSendingDelay;
@@ -106,10 +102,6 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private boolean messageOutdated(SMSEvent event) {
-        return Utils.clockTicked(event.getEventTime(), event.getEventTTLMsec());
-    }
-
     /**
      * Getting system delay after next "round"
      *
@@ -118,7 +110,6 @@ public class BackgroundService extends Service implements LocationListener {
     private int getMainDelay() {
         return MAIN_DELAY;
     } // once per 10 sec.
-
 
 
     @Override
@@ -143,6 +134,9 @@ public class BackgroundService extends Service implements LocationListener {
     public void gpsTimeout() {
 
         stopGPS();
+
+        heartBeat(); // Send healthcheck alert if needed
+
 //        saveLocation();
         sleep();
 //        MainApplication.wakeLock2(false);
@@ -173,17 +167,11 @@ public class BackgroundService extends Service implements LocationListener {
 
 //        boolean inSafeZone = Main.getInstance().isInSafeZone();
         String safeZoneName = Main.getInstance().isInSafeZone();
-        if (!Const.EMPTY.equals(safeZoneName) && null!=mLocationManager)     {
+        if (!Const.EMPTY.equals(safeZoneName) && null != mLocationManager) {
 
             mLocationManager.removeUpdates(this);
 
         }
-
-
-
-
-
-
 
 
 //        if (Main.getInstance().isInSafeZone()) {
@@ -249,10 +237,6 @@ public class BackgroundService extends Service implements LocationListener {
         }*/
 
 
-
-
-
-
         String wifiZoneName = Main.getInstance().isInSafeZone();
         if (Const.EMPTY.equals(wifiZoneName)) { // Only if we're out of safe zone:
 
@@ -278,13 +262,6 @@ public class BackgroundService extends Service implements LocationListener {
         } else {
             reportSafeZone(wifiZoneName);
         }
-
-
-
-
-
-
-
 
 
         startMainProcessInForeground();
@@ -350,8 +327,6 @@ public class BackgroundService extends Service implements LocationListener {
         }
 
 
-
-
     }
 
     @Override
@@ -368,7 +343,6 @@ public class BackgroundService extends Service implements LocationListener {
     public void onProviderDisabled(String provider) {
 
     }
-
 
 
     /**
@@ -439,12 +413,38 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
+    private void heartBeat() {
+
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+
+        if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_PING_ENABLED))) {
+
+            Date firstTime = new Date(0);
+            if (firstTime.getTime() == heartBeatDate.getTime()) {
+                heartBeatDate = new Date();
+                return; // heartbeating later...
+            }
 
 
+            Integer pingMinutes = Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_PING_MINUTES));
+            if (Utils.clockTicked(heartBeatDate, pingMinutes * 60 * 1000)) {
+
+                try {
+//                    String pingText = URLEncoder.encode(cfg.get(ConfigurationKey.DEVICE_ALIAS) + ": " + cfg.get(ConfigurationKey.DEVICE_PING_TEXT), Const.UTF8_ENCODING);
+                    String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId());
+
+                    NetworkReport networkReport = new NetworkReport();
+                    networkReport.execute(urlAddress);
+
+                } catch (Exception e) {
+                    //be quiet
+                }
 
 
-
-
+                heartBeatDate = new Date();
+            }
+        }
+    }
 
 
 }

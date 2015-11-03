@@ -51,7 +51,6 @@ public class Main extends AppCompatActivity {
     public static Main mInstance;
     public Date healthCheckTime = new Date(0);
     private WifiManager wifi;
-    private List<String> safeWifi = new ArrayList<>();
     private String deviceId;
     private HttpURLConnection urlConnection;
 
@@ -66,8 +65,6 @@ public class Main extends AppCompatActivity {
         mServiceInstance = null;
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
-        safeWifi.add("www.div.lv");
 
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 

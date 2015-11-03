@@ -22,4 +22,5 @@ public class Const {
     //    public static final int HEALTH_CHECK_TIME_MSEC = 1000; // 1 sec (for debugging)
     public static final String WIFI_VALUES_SEPARATOR = ";;";
     public static final String WIFI_NAME_SEPARATOR = "::";
+    public static final String TRUE_FLAG = "1";
 }
