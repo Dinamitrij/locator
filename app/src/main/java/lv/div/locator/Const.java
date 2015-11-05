@@ -15,6 +15,7 @@ public class Const {
     public static final String CONFIG_DOWNLOAD_URL_MASK = "http://server.com/data/config?text=1&device=%s";
 
     public static final String TIME_24H_FORMAT = "HH:mm:ss";
+    public static final String DATE_FORMAT = "dd-MM";
     public static final String UTF8_ENCODING = "utf-8";
     public static final int HEALTH_CHECK_TIME_MSEC = 3600000; // 1 Hour
     public static final String EMPTY = "";

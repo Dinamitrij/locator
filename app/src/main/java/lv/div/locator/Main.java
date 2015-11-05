@@ -18,7 +18,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -73,6 +72,10 @@ public class Main extends AppCompatActivity {
 
         ConfigLoader configLoader = new ConfigLoader();
         configLoader.execute();
+
+//        if (getIntent().getBooleanExtra("EXIT", false)) {
+//            finish();
+//        }
 
     }
 

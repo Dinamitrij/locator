@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.Calendar;
 import java.util.Date;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import de.greenrobot.event.EventBus;
+import lv.div.locator.actions.HealthCheckReport;
 import lv.div.locator.actions.NetworkReport;
 import lv.div.locator.conf.ConfigurationKey;
 import lv.div.locator.events.EventHttpReport;
@@ -40,7 +42,7 @@ public class BackgroundService extends Service implements LocationListener {
     public Intent batteryStatus;
     private LocationManager mLocationManager = null;
     private PendingIntent pi;
-    private Date heartBeatDate = new Date(0);
+    private Date pingTime = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
     private long smsSendingDelay;
@@ -135,7 +137,9 @@ public class BackgroundService extends Service implements LocationListener {
 
         stopGPS();
 
-        heartBeat(); // Send healthcheck alert if needed
+        ping(); // Send healthcheck alert if needed
+
+        shutdownAppIfNeeded();
 
 //        saveLocation();
         sleep();
@@ -413,38 +417,62 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private void heartBeat() {
+    private void ping() {
 
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_PING_ENABLED))) {
 
             Date firstTime = new Date(0);
-            if (firstTime.getTime() == heartBeatDate.getTime()) {
-                heartBeatDate = new Date();
+            if (firstTime.getTime() == pingTime.getTime()) {
+                pingTime = new Date();
                 return; // heartbeating later...
             }
 
 
             Integer pingMinutes = Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_PING_MINUTES));
-            if (Utils.clockTicked(heartBeatDate, pingMinutes * 60 * 1000)) {
+            if (Utils.clockTicked(pingTime, pingMinutes * 60 * 1000)) {
 
                 try {
-//                    String pingText = URLEncoder.encode(cfg.get(ConfigurationKey.DEVICE_ALIAS) + ": " + cfg.get(ConfigurationKey.DEVICE_PING_TEXT), Const.UTF8_ENCODING);
-                    String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId());
+                    String pingMessage = Utils.fillPlaceholdersWithSystemVariables(Main.getInstance().config.get(ConfigurationKey.DEVICE_PING_TEXT));
+                    String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId(), URLEncoder.encode(pingMessage, Const.UTF8_ENCODING));
 
-                    NetworkReport networkReport = new NetworkReport();
-                    networkReport.execute(urlAddress);
+                    HealthCheckReport healthCheck = new HealthCheckReport();
+                    healthCheck.execute(urlAddress);
 
                 } catch (Exception e) {
                     //be quiet
                 }
 
 
-                heartBeatDate = new Date();
+                pingTime = new Date();
             }
         }
     }
+
+
+    private void shutdownAppIfNeeded() {
+/*
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+        if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED))) {
+            String shutdownTime = cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_TIME);
+            Integer current = Integer.valueOf(Utils.currentTime().replaceAll(":", ""));
+            Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", ""));
+            if (current.compareTo(shutdown) > 0) {
+//                System.exit(1);
+                android.os.Process.killProcess(android.os.Process.myPid());
+
+//                Intent intent = new Intent(getApplicationContext(), Main.class);
+//                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//                intent.putExtra("EXIT", true);
+//                startActivity(intent);
+
+            }
+
+        }
+*/
+    }
+
 
 
 }

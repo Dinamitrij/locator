@@ -9,7 +9,7 @@ import java.net.URL;
 
 public class NetworkReport extends AsyncTask<String, Void, Boolean> {
 
-    HttpURLConnection urlConnection;
+    protected HttpURLConnection urlConnection;
 
     @Override
     protected Boolean doInBackground(String... params) {
