@@ -11,8 +11,8 @@ public class Const {
     public static final int MAX_MESSAGE_SIZE = 120;
     public static final int MAX_DB_RECORD_STRING_SIZE = 254;
     public static final String REPORT_URL_MASK = "http://api.thingspeak.com/update?key=XCFK6A93DMV9FUQ2&field1=%s&field2=%s&field3=%s&field4=%s&field5=%s&field6=%s&field7=%s&field8=%s";
-    public static final String HEALTH_CHECK_URL_MASK = "http://log2twit.appspot.com/log?t=rob&m=%s";
-    public static final String CONFIG_DOWNLOAD_URL_MASK = "http://locator.v1.lv/data/config?device=%s&text=1";
+    public static final String HEALTH_CHECK_URL_MASK = "http://sssssss.appspot.com/log?t=rob&m=%s";
+    public static final String CONFIG_DOWNLOAD_URL_MASK = "http://dddddd.v1.lv/data/config?device=%s&text=1";
     public static final String NO_INTERNET_SMS_ALERT_POSTFIX = " / No Internet connection";
 
     public static final String TIME_24H_FORMAT = "HH:mm:ss";
