@@ -11,6 +11,7 @@ import android.os.BatteryManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
+import android.widget.Toast;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +32,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import lv.div.locator.actions.HttpReportSender;
+import lv.div.locator.actions.InitialConfigLoader;
 import lv.div.locator.actions.NetworkReport;
 import lv.div.locator.conf.ConfigurationKey;
 
@@ -51,7 +53,7 @@ public class Main extends AppCompatActivity {
     public Date healthCheckTime = new Date(0);
     private WifiManager wifi;
     private String deviceId;
-    private HttpURLConnection urlConnection;
+//    private HttpURLConnection urlConnection;
 
     public static Main getInstance() {
         return mInstance;
@@ -70,13 +72,8 @@ public class Main extends AppCompatActivity {
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
 
-        ConfigLoader configLoader = new ConfigLoader();
+        InitialConfigLoader configLoader = new InitialConfigLoader();
         configLoader.execute();
-
-//        if (getIntent().getBooleanExtra("EXIT", false)) {
-//            finish();
-//        }
-
     }
 
     public void startApplication() {
@@ -172,21 +169,6 @@ public class Main extends AppCompatActivity {
     public String isInSafeZone() {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
 
-
-/*
-        Date date = new Date();   // given date
-        Calendar calendar = GregorianCalendar.getInstance(); // creates a new calendar instance
-        calendar.setTime(date);   // assigns calendar to given date
-        calendar.get(Calendar.HOUR_OF_DAY); // gets hour in 24h format
-        calendar.get(Calendar.HOUR);        // gets hour in 12h format
-        calendar.get(Calendar.MONTH);       // gets month number, NOTE this is zero based!
-
-        int i = calendar.get(Calendar.MINUTE);
-        boolean insafezone = (i % 2) == 0;
-        return insafezone;
-*/
-
-
         String result = Const.EMPTY;
 
         String currentVisibleWifiNetworks = getWifiNetworks();
@@ -231,68 +213,5 @@ public class Main extends AppCompatActivity {
         }
         return deviceId;
     }
-
-    private class ConfigLoader extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-
-            try {
-                URL url = new URL(String.format(Const.CONFIG_DOWNLOAD_URL_MASK, buildDeviceId()));
-
-                urlConnection = (HttpURLConnection) url.openConnection();
-
-                InputStream in = urlConnection.getInputStream();
-                InputStreamReader isw = new InputStreamReader(in);
-
-
-                Main.getInstance().config.clear();
-
-                String str;
-                StringBuilder sb = new StringBuilder();
-                int data = isw.read();
-                while (data != -1) {
-                    char current = (char) data;
-                    sb.append(current);
-                    data = isw.read();
-                }
-
-                str = sb.toString();
-                String[] split = str.split("\n");
-                for (String line : split) {
-                    String[] keyVal = line.split(" = ");
-                    if (keyVal.length == 2) {
-                        String name = keyVal[0];
-                        ConfigurationKey key = ConfigurationKey.valueOf(name);
-                        String value = keyVal[1];
-                        Main.getInstance().config.put(key, value);
-                    }
-                }
-
-
-            } catch (Exception e) {
-                System.exit(1); /// THIS IS FATAL ERROR!!! WE NEED INTERNET AND CONFIGURATION ALWAYS!!!
-            } finally {
-                try {
-                    urlConnection.disconnect();
-                } catch (Exception e) {
-                }
-            }
-
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            startApplication();
-        }
-
-    }
-
 
 }

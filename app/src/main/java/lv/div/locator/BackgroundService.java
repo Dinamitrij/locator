@@ -15,8 +15,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Calendar;
 import java.util.Date;
@@ -27,8 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import de.greenrobot.event.EventBus;
+import lv.div.locator.actions.ConfigReloader;
 import lv.div.locator.actions.HealthCheckReport;
-import lv.div.locator.actions.NetworkReport;
 import lv.div.locator.conf.ConfigurationKey;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
@@ -478,9 +476,6 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-
-
-
     private void reloadConfiguration() {
 
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
@@ -494,55 +489,16 @@ public class BackgroundService extends Service implements LocationListener {
                 return; // reload later...
             }
 
-
             Integer reloadConfMinutes = Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_RELOAD_CONFIG_MINUTES));
             if (Utils.clockTicked(reloadConfigTime, reloadConfMinutes * 60 * 1000)) {
 
-
-//                String pingMessage = Utils.fillPlaceholdersWithSystemVariables(Main.getInstance().config.get(ConfigurationKey.DEVICE_PING_TEXT));
-//                String encode = null;
-//                try {
-//                    encode = URLEncoder.encode(pingMessage, Const.UTF8_ENCODING);
-//                } catch (UnsupportedEncodingException e) {
-//                    encode = "xxx";
-//                }
-                String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId(), "config_reload");
-
-                HealthCheckReport healthCheck = new HealthCheckReport();
-                healthCheck.execute(urlAddress);
-
-
-//                ConfigReloader configLoader = new ConfigReloader();
-//                configLoader.execute();
-
-
-//                try {
-//                    String pingMessage = Utils.fillPlaceholdersWithSystemVariables(Main.getInstance().config.get(ConfigurationKey.DEVICE_PING_TEXT));
-//                    String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId(), URLEncoder.encode(pingMessage, Const.UTF8_ENCODING));
-//
-//                    HealthCheckReport healthCheck = new HealthCheckReport();
-//                    healthCheck.execute(urlAddress);
-//
-//                } catch (Exception e) {
-//                    //be quiet
-//                }
-
+                ConfigReloader configReloader = new ConfigReloader();
+                configReloader.execute();
 
                 reloadConfigTime = new Date();
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 
 
 }
