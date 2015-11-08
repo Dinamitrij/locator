@@ -16,6 +16,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Calendar;
 import java.util.Date;
@@ -43,6 +44,7 @@ public class BackgroundService extends Service implements LocationListener {
     private LocationManager mLocationManager = null;
     private PendingIntent pi;
     private Date pingTime = new Date(0);
+    private Date reloadConfigTime = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
     private long smsSendingDelay;
@@ -138,6 +140,8 @@ public class BackgroundService extends Service implements LocationListener {
         stopGPS();
 
         ping(); // Send healthcheck alert if needed
+
+        reloadConfiguration(); // Reload app configuration, if needed
 
         shutdownAppIfNeeded();
 
@@ -472,6 +476,72 @@ public class BackgroundService extends Service implements LocationListener {
         }
 */
     }
+
+
+
+
+
+    private void reloadConfiguration() {
+
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+
+        String reloadEnabled = cfg.get(ConfigurationKey.DEVICE_RELOAD_CONFIG_ENABLED);
+        if (Const.TRUE_FLAG.equals(reloadEnabled)) {
+
+            Date firstTime = new Date(0);
+            if (firstTime.getTime() == reloadConfigTime.getTime()) {
+                reloadConfigTime = new Date();
+                return; // reload later...
+            }
+
+
+            Integer reloadConfMinutes = Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_RELOAD_CONFIG_MINUTES));
+            if (Utils.clockTicked(reloadConfigTime, reloadConfMinutes * 60 * 1000)) {
+
+
+//                String pingMessage = Utils.fillPlaceholdersWithSystemVariables(Main.getInstance().config.get(ConfigurationKey.DEVICE_PING_TEXT));
+//                String encode = null;
+//                try {
+//                    encode = URLEncoder.encode(pingMessage, Const.UTF8_ENCODING);
+//                } catch (UnsupportedEncodingException e) {
+//                    encode = "xxx";
+//                }
+                String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId(), "config_reload");
+
+                HealthCheckReport healthCheck = new HealthCheckReport();
+                healthCheck.execute(urlAddress);
+
+
+//                ConfigReloader configLoader = new ConfigReloader();
+//                configLoader.execute();
+
+
+//                try {
+//                    String pingMessage = Utils.fillPlaceholdersWithSystemVariables(Main.getInstance().config.get(ConfigurationKey.DEVICE_PING_TEXT));
+//                    String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId(), URLEncoder.encode(pingMessage, Const.UTF8_ENCODING));
+//
+//                    HealthCheckReport healthCheck = new HealthCheckReport();
+//                    healthCheck.execute(urlAddress);
+//
+//                } catch (Exception e) {
+//                    //be quiet
+//                }
+
+
+                reloadConfigTime = new Date();
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
 
 
 
