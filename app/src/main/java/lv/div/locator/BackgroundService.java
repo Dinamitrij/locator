@@ -454,6 +454,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     private void shutdownAppIfNeeded() {
+
 /*
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED))) {
@@ -461,8 +462,11 @@ public class BackgroundService extends Service implements LocationListener {
             Integer current = Integer.valueOf(Utils.currentTime().replaceAll(":", ""));
             Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", ""));
             if (current.compareTo(shutdown) > 0) {
+                super.onDestroy();
+                Main.getInstance().exitApplication();
+
 //                System.exit(1);
-                android.os.Process.killProcess(android.os.Process.myPid());
+//                android.os.Process.killProcess(android.os.Process.myPid());
 
 //                Intent intent = new Intent(getApplicationContext(), Main.class);
 //                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -473,6 +477,7 @@ public class BackgroundService extends Service implements LocationListener {
 
         }
 */
+
     }
 
 

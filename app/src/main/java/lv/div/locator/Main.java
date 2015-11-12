@@ -53,7 +53,8 @@ public class Main extends AppCompatActivity {
     public Date healthCheckTime = new Date(0);
     private WifiManager wifi;
     private String deviceId;
-//    private HttpURLConnection urlConnection;
+    private Intent mainApplicationService;
+    //    private HttpURLConnection urlConnection;
 
     public static Main getInstance() {
         return mInstance;
@@ -77,9 +78,14 @@ public class Main extends AppCompatActivity {
     }
 
     public void startApplication() {
-        Intent i = new Intent(Main.this, BackgroundService.class);
-        startService(i);
+        mainApplicationService = new Intent(Main.this, BackgroundService.class);
+        startService(mainApplicationService);
         minimizeApp();
+    }
+
+    public void exitApplication() {
+        stopService(mainApplicationService);
+        super.finish();
     }
 
     private void minimizeApp() {
@@ -187,6 +193,13 @@ public class Main extends AppCompatActivity {
 
         return result;
 
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        minimizeApp(); //  android:launchMode="singleTask" + this - means if the App will run again - will be minimized at once and no duplicate created.
     }
 
     /**
