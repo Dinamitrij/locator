@@ -13,6 +13,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.telephony.SmsManager;
 import android.util.Log;
 
 import java.net.URLEncoder;
@@ -455,28 +456,40 @@ public class BackgroundService extends Service implements LocationListener {
 
     private void shutdownAppIfNeeded() {
 
-/*
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED))) {
             String shutdownTime = cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_TIME);
             Integer current = Integer.valueOf(Utils.currentTime().replaceAll(":", ""));
             Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", ""));
             if (current.compareTo(shutdown) > 0) {
+
+                SmsManager smsManager = SmsManager.getDefault();
+                try {
+
+                    Map<ConfigurationKey, String> conf = Main.getInstance().config;
+
+                    if (Const.TRUE_FLAG.equals(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
+                            && !Const.EMPTY.equals(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
+
+                        String pingMessage = conf.get(ConfigurationKey.DEVICE_ALIAS) + ": SHUTDOWN! " + Utils.fillPlaceholdersWithSystemVariables(conf.get(ConfigurationKey.DEVICE_PING_TEXT));
+
+                        if (pingMessage.length() > Const.MAX_MESSAGE_SIZE) {
+                            pingMessage = pingMessage.substring(0, Const.MAX_MESSAGE_SIZE);
+                        }
+                        smsManager.sendTextMessage(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
+                    }
+
+                } catch (Exception e) {
+                    // quiet
+                }
+
+                stopSelf();
                 super.onDestroy();
-                Main.getInstance().exitApplication();
-
-//                System.exit(1);
-//                android.os.Process.killProcess(android.os.Process.myPid());
-
-//                Intent intent = new Intent(getApplicationContext(), Main.class);
-//                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//                intent.putExtra("EXIT", true);
-//                startActivity(intent);
-
+                System.exit(1);
             }
 
         }
-*/
+
 
     }
 

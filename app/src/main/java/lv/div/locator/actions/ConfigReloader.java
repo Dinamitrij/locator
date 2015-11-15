@@ -35,7 +35,6 @@ public class ConfigReloader extends GenericConfigLoader {
             }
 
         } catch (Exception e) {
-            int a = 4 + 5;
             // quiet
         }
 
