@@ -26,4 +26,5 @@ public class Const {
     public static final String WIFI_VALUES_SEPARATOR = ";;";
     public static final String WIFI_NAME_SEPARATOR = "::";
     public static final String TRUE_FLAG = "1";
+    public static final String ZERO_COORDINATE = "0.0";
 }

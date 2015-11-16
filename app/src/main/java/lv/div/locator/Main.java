@@ -49,6 +49,7 @@ public class Main extends AppCompatActivity {
     public static Set<String> wifiNetworksCache = new HashSet<>();
 
     public static Date wifiCacheDate = new Date(0);
+    public static Date wifiReportedDate = new Date(0);
     public static Main mInstance;
     public Date healthCheckTime = new Date(0);
     private WifiManager wifi;

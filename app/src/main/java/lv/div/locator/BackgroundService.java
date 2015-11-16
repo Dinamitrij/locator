@@ -38,6 +38,7 @@ public class BackgroundService extends Service implements LocationListener {
     public static final int MAIN_DELAY = 10;
     public static final String DEFAULT_STATE = "n/a";
     private final static String Tag = "---IntentServicetest";
+    public static final String ZERO_VALUE = "0";
     private final IntentFilter ifilter;
     public Intent batteryStatus;
     private LocationManager mLocationManager = null;
@@ -180,6 +181,10 @@ public class BackgroundService extends Service implements LocationListener {
 
         }
 
+        if (!Const.EMPTY.equals(safeZoneName)) {
+            reportSafeZone();
+        }
+
 
 //        if (Main.getInstance().isInSafeZone()) {
 //            locationManager.removeUpdates(deviceLocationListener);
@@ -267,7 +272,7 @@ public class BackgroundService extends Service implements LocationListener {
             }
 
         } else {
-            reportSafeZone(wifiZoneName);
+            reportSafeZone();
         }
 
 
@@ -275,12 +280,25 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
-    private void reportSafeZone(String wifiZoneName) {
-        String wifiNetworks = Main.getInstance().getWifiNetworks();
-        String deviceId = Main.getInstance().buildDeviceId();
-        EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                wifiNetworks, "0.0", "0.0", "0", "0", "safe", deviceId);
-        EventBus.getDefault().post(eventHttpReport);
+    private void reportSafeZone() {
+//        String wifiNetworks = Main.getInstance().getWifiNetworks();
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+
+        if (Utils.clockTicked(Main.getInstance().wifiReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_WIFI_ZONE_REPORT_MSEC)))) {
+
+            String deviceId = Main.getInstance().buildDeviceId();
+
+            String wifiNetworks = Main.getInstance().wifiCache;
+            if (Main.getInstance().wifiCache.length()>Const.MAX_DB_RECORD_STRING_SIZE) {
+                wifiNetworks = Main.getInstance().wifiCache.substring(0, Const.MAX_DB_RECORD_STRING_SIZE);
+            }
+
+            EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
+                    wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, ZERO_VALUE, ZERO_VALUE, "safe", deviceId);
+            EventBus.getDefault().post(eventHttpReport);
+
+            Main.getInstance().wifiReportedDate = new Date();
+        }
     }
 
 
