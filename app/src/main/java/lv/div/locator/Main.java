@@ -50,6 +50,7 @@ public class Main extends AppCompatActivity {
 
     public static Date wifiCacheDate = new Date(0);
     public static Date wifiReportedDate = new Date(0);
+    public static Date gpsReportedDate = new Date(0);
     public static Main mInstance;
     public Date healthCheckTime = new Date(0);
     private WifiManager wifi;
@@ -104,28 +105,6 @@ public class Main extends AppCompatActivity {
     public String getBatteryStatus() {
         int level = mServiceInstance.batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
         return String.valueOf(level);
-    }
-
-    public void healthCheck() {
-        if (!Utils.clockTicked(healthCheckTime, Const.HEALTH_CHECK_TIME_MSEC)) {
-            return;
-        }
-        Date now = new Date();
-        String time = null;
-        try {
-            String s = config.get(ConfigurationKey.DEVICE_ALIAS);
-            time = URLEncoder.encode("healthCheck from " + s + Const.SPACE + now.toString(), Const.UTF8_ENCODING);
-        } catch (UnsupportedEncodingException e) {
-            time = "0";
-        }
-
-
-        String urlAddress = String.format(Const.HEALTH_CHECK_URL_MASK, time);
-        NetworkReport networkReport = new NetworkReport();
-        networkReport.execute(urlAddress);
-
-        healthCheckTime = new Date();
-
     }
 
     public String getWifiNetworks() {

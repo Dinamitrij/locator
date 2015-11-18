@@ -181,9 +181,9 @@ public class BackgroundService extends Service implements LocationListener {
 
         }
 
-        if (!Const.EMPTY.equals(safeZoneName)) {
-            reportSafeZone();
-        }
+//        if (!Const.EMPTY.equals(safeZoneName)) {
+//            reportSafeZone();
+//        }
 
 
 //        if (Main.getInstance().isInSafeZone()) {
@@ -281,7 +281,6 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     private void reportSafeZone() {
-//        String wifiNetworks = Main.getInstance().getWifiNetworks();
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         if (Utils.clockTicked(Main.getInstance().wifiReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_WIFI_ZONE_REPORT_MSEC)))) {
@@ -289,7 +288,7 @@ public class BackgroundService extends Service implements LocationListener {
             String deviceId = Main.getInstance().buildDeviceId();
 
             String wifiNetworks = Main.getInstance().wifiCache;
-            if (Main.getInstance().wifiCache.length()>Const.MAX_DB_RECORD_STRING_SIZE) {
+            if (Main.getInstance().wifiCache.length() > Const.MAX_DB_RECORD_STRING_SIZE) {
                 wifiNetworks = Main.getInstance().wifiCache.substring(0, Const.MAX_DB_RECORD_STRING_SIZE);
             }
 
@@ -328,27 +327,25 @@ public class BackgroundService extends Service implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
 
-//        double latitude = location.getLatitude();
-//        double longitude = location.getLongitude();
-//        String accuracy = String.format("%.0f", location.getAccuracy());
-//
-//        String s = Main.getInstance().buildDeviceId();
-////
-//        EventHttpReport eventHttpReport = new EventHttpReport(getBatteryStatus(), getWifiNetworks(), String.valueOf(latitude), String.valueOf(longitude), accuracy, String.valueOf(isInSafeZone()), deviceId);
-//        EventBus.getDefault().post(eventHttpReport);
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
+        // Should we report GPS coordinates already? (not too often?!)
+        if (Utils.clockTicked(Main.getInstance().gpsReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_GPS_COORDINATE_REPORT_MSEC)))) {
 
-        boolean betterLocation = isBetterLocation(location);
-        if (betterLocation) {
-            double latitude = location.getLatitude();
-            double longitude = location.getLongitude();
-            String accuracy = String.format("%.0f", location.getAccuracy());
+            boolean betterLocation = isBetterLocation(location);
+            if (betterLocation) {
+                double latitude = location.getLatitude();
+                double longitude = location.getLongitude();
+                String accuracy = String.format("%.0f", location.getAccuracy());
 
-            String wifiNetworks = Main.getInstance().getWifiNetworks();
-            EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                    wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
-                    accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
-            EventBus.getDefault().post(eventHttpReport);
+                String wifiNetworks = Main.getInstance().getWifiNetworks();
+                EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
+                        wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
+                        accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
+                EventBus.getDefault().post(eventHttpReport);
+            }
+
+            Main.getInstance().gpsReportedDate = new Date();
         }
 
 

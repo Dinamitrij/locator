@@ -1,18 +1,15 @@
 package lv.div.locator.actions;
 
 
-import android.os.AsyncTask;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Map;
 
 import de.greenrobot.event.EventBus;
 import lv.div.locator.Const;
 import lv.div.locator.Main;
+import lv.div.locator.conf.ConfigurationKey;
 import lv.div.locator.events.EventHttpReport;
 
 public class HttpReportSender {
@@ -36,33 +33,15 @@ public class HttpReportSender {
 
             String deviceId = event.getDeviceId();
 
-            String urlAddress = String.format(Const.REPORT_URL_MASK, latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId);
+            Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+            String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_URL_MASK), latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId);
 
             NetworkReport networkReport = new NetworkReport();
             networkReport.execute(urlAddress);
 
-//            url = new URL(urlAddress);
-//
-//            urlConnection = (HttpURLConnection) url.openConnection();
-//            InputStream in = urlConnection.getInputStream();
-//            InputStreamReader isw = new InputStreamReader(in);
-//
-//            int data = isw.read();
-//            while (data != -1) {
-//                char current = (char) data;
-//                data = isw.read();
-//            }
         } catch (Exception e) {
             // Error. Be quiet
-            String message = e.getMessage();
-        } finally {
-//            try {
-//                urlConnection.disconnect();
-//            } catch (Exception e) {
-//                // Error. Be quiet
-//            }
         }
-
 
     }
 }
