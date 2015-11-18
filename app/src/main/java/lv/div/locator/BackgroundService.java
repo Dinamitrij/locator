@@ -47,11 +47,6 @@ public class BackgroundService extends Service implements LocationListener {
     private Date reloadConfigTime = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
-    private long smsSendingDelay;
-    private String deviceId;
-    private DeviceLocationListener deviceLocationListener;
-    //    private final Criteria crit;
-
 
     public BackgroundService() {
         // TODO Auto-generated constructor stub
@@ -87,14 +82,11 @@ public class BackgroundService extends Service implements LocationListener {
 
         startGPS();
 
-//        Main.getInstance().healthCheck(); // Send Healthcheck message, if needed.
-
         if (Main.getInstance().wifiNetworksCache.isEmpty()) {
             Main.getInstance().getWifiNetworks();
         }
 
 
-//        Main.getInstance().sendAlert("Locator started");
         return START_STICKY;
 
     }
@@ -145,9 +137,7 @@ public class BackgroundService extends Service implements LocationListener {
 
         shutdownAppIfNeeded();
 
-//        saveLocation();
         sleep();
-//        MainApplication.wakeLock2(false);
     }
 
 
@@ -159,36 +149,12 @@ public class BackgroundService extends Service implements LocationListener {
         }
 
 
-
-/*
-        boolean inSafeZone = Main.getInstance().isInSafeZone();
-        if (inSafeZone)     {
-
-            if (null != deviceLocationListener && null != deviceLocationListener) {
-                locationManager.removeUpdates(deviceLocationListener);
-//                Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
-            }
-
-        }
-*/
-
-
-//        boolean inSafeZone = Main.getInstance().isInSafeZone();
         String safeZoneName = Main.getInstance().isInSafeZone();
         if (!Const.EMPTY.equals(safeZoneName) && null != mLocationManager) {
 
             mLocationManager.removeUpdates(this);
 
         }
-
-//        if (!Const.EMPTY.equals(safeZoneName)) {
-//            reportSafeZone();
-//        }
-
-
-//        if (Main.getInstance().isInSafeZone()) {
-//            locationManager.removeUpdates(deviceLocationListener);
-//        }
 
     }
 
@@ -198,55 +164,6 @@ public class BackgroundService extends Service implements LocationListener {
         Intent i = null;
         GregorianCalendar cal = null;
         int iProviders = 0;
-
-
-//        LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//        String bestProvider = mlocManager.getBestProvider(crit, false);
-//        if (locationManager.isProviderEnabled(bestProvider)) {
-//            locationManager.requestLocationUpdates(bestProvider, 0, 0, this);
-//            iProviders++;
-//        }
-
-//        if (null != deviceLocationListener) {
-//            Main.getInstance().locationManager.removeUpdates(deviceLocationListener);
-//        }
-
-
-
-/*        boolean inSafeZone = Main.getInstance().isInSafeZone();
-        if (!inSafeZone)     { // Only if we're out of safe zone:
-
-            deviceLocationListener = new DeviceLocationListener();
-
-            // Make sure at least one provider is available
-            boolean networkProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            if (networkProviderEnabled) {
-//                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
-                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, deviceLocationListener);
-                iProviders++;
-            }
-
-
-            boolean gpsProviderEnabled = Main.getInstance().locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            if (gpsProviderEnabled) {
-//                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, Main.getInstance().deviceLocationListener);
-                Main.getInstance().locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, deviceLocationListener);
-                iProviders++;
-            }
-//        } else {
-//            // Report safe zone:
-//            reportSafeZone();
-//        }
-
-            if (iProviders == 0) {
-                sleep();
-                return;
-            }
-
-
-        } else {
-            reportSafeZone();
-        }*/
 
 
         String wifiZoneName = Main.getInstance().isInSafeZone();
