@@ -16,6 +16,10 @@ import android.os.IBinder;
 import android.telephony.SmsManager;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.net.URLEncoder;
 import java.util.Calendar;
 import java.util.Date;
@@ -255,11 +259,50 @@ public class BackgroundService extends Service implements LocationListener {
                 double longitude = location.getLongitude();
                 String accuracy = String.format("%.0f", location.getAccuracy());
 
-                String wifiNetworks = Main.getInstance().getWifiNetworks();
-                EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                        wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
-                        accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
-                EventBus.getDefault().post(eventHttpReport);
+                if (!Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_COLLECT_BSSID_MODE_ENABLED))) {
+
+                    String wifiNetworks = Main.getInstance().getWifiNetworks();
+                    EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
+                            wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
+                            accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
+                    EventBus.getDefault().post(eventHttpReport);
+                } else {
+
+                    if (!Main.getInstance().bssidNetworks.isEmpty()) {
+
+                        JSONObject obj = new JSONObject();
+
+                        try {
+                            obj.put("device", Main.getInstance().buildDeviceId());
+                            obj.put("devicename", cfg.get(ConfigurationKey.DEVICE_ALIAS));
+                            obj.put("battery", Main.getInstance().getBatteryStatus());
+                            obj.put("latitude", String.valueOf(latitude));
+                            obj.put("longitude", String.valueOf(longitude));
+                            obj.put("accuracy", accuracy);
+
+
+                            JSONArray jarr = new JSONArray();
+                            for (String bssid : Main.getInstance().bssidNetworks.keySet()) {
+                                JSONObject arrayObject = new JSONObject();
+                                arrayObject.put("name", Main.getInstance().bssidNetworks.get(bssid).replace('"', '`'));
+                                arrayObject.put("bssid", bssid);
+                                jarr.put(arrayObject);
+                            }
+
+                            obj.put("bssids", jarr);
+
+                            String jsonToSend = obj.toString();
+
+                            EventHttpReport eventHttpReport = new EventHttpReport(null, jsonToSend, null, null, null, null, null, null);
+                            EventBus.getDefault().post(eventHttpReport);
+                        } catch (Exception e) {
+                            // TODO Auto-generated catch block
+                        }
+
+                    }
+                }
+
+
             }
 
             Main.getInstance().gpsReportedDate = new Date();

@@ -61,6 +61,11 @@ public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
                 }
             }
 
+            // If we need BSSIDs, then GPS should always be "ON":
+            if (Const.TRUE_FLAG.equals(tmpConfig.get(ConfigurationKey.DEVICE_COLLECT_BSSID_MODE_ENABLED))) {
+                tmpConfig.put(ConfigurationKey.SAFE_ZONE_WIFI, "nozone");
+            }
+
             Main.getInstance().config.clear();
             Main.getInstance().config = tmpConfig;
 

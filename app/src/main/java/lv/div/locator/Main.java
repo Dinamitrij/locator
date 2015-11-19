@@ -41,13 +41,14 @@ public class Main extends AppCompatActivity {
 
     public static BackgroundService mServiceInstance;
     public static Map<ConfigurationKey, String> config = new HashMap<>();
+
     public static LocationManager locationManager = null;
     public static boolean locationRequested = false; // Initially - no location request
     public static DeviceLocationListener deviceLocationListener = new DeviceLocationListener();
     public static Location currentBestLocation;
     public static String wifiCache = "";
     public static Set<String> wifiNetworksCache = new HashSet<>();
-
+    public static Map<String, String> bssidNetworks = new HashMap<>();
     public static Date wifiCacheDate = new Date(0);
     public static Date wifiReportedDate = new Date(0);
     public static Date gpsReportedDate = new Date(0);
@@ -120,10 +121,11 @@ public class Main extends AppCompatActivity {
         wifi.startScan();
         // get list of the results in object format ( like an array )
         List<ScanResult> results = wifi.getScanResults();
-
+        bssidNetworks.clear();
         SortedMap<Integer, String> networks = new TreeMap<>(Collections.reverseOrder());
         for (ScanResult result : results) {
             networks.put(result.level, result.SSID);
+            bssidNetworks.put(result.BSSID, result.SSID);
         }
 
         Set<Map.Entry<Integer, String>> entries = networks.entrySet();
