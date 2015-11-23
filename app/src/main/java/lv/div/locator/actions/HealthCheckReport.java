@@ -5,10 +5,12 @@ import android.telephony.SmsManager;
 import java.io.IOException;
 import java.util.Map;
 
-import lv.div.locator.Const;
 import lv.div.locator.Main;
 import lv.div.locator.Utils;
-import lv.div.locator.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.Const;
+import lv.div.locator.conf.Constant;
+
 
 public class HealthCheckReport extends NetworkReport {
 
@@ -60,10 +62,10 @@ public class HealthCheckReport extends NetworkReport {
             if (Const.TRUE_FLAG.equals(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
                     && !Const.EMPTY.equals(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
 
-                String pingMessage = Utils.fillPlaceholdersWithSystemVariables(conf.get(ConfigurationKey.DEVICE_PING_TEXT)) + Const.NO_INTERNET_SMS_ALERT_POSTFIX;
+                String pingMessage = Utils.fillPlaceholdersWithSystemVariables(conf.get(ConfigurationKey.DEVICE_PING_TEXT)) + Constant.NO_INTERNET_SMS_ALERT_POSTFIX;
 
-                if (pingMessage.length() > Const.MAX_MESSAGE_SIZE) {
-                    pingMessage = pingMessage.substring(0, Const.MAX_MESSAGE_SIZE);
+                if (pingMessage.length() > Constant.MAX_MESSAGE_SIZE) {
+                    pingMessage = pingMessage.substring(0, Constant.MAX_MESSAGE_SIZE);
                 }
                 smsManager.sendTextMessage(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
             }

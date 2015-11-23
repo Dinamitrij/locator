@@ -10,9 +10,11 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import lv.div.locator.Const;
 import lv.div.locator.Main;
-import lv.div.locator.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.Const;
+import lv.div.locator.conf.Constant;
+
 
 public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
     private HttpURLConnection urlConnection;
@@ -22,7 +24,7 @@ public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
     }
 
     protected URL buildURL(String deviceId) throws Exception {
-        return new URL(String.format(Const.CONFIG_DOWNLOAD_URL_MASK, deviceId));
+        return new URL(String.format(Constant.CONFIG_DOWNLOAD_URL_MASK, deviceId));
     }
 
 

@@ -32,7 +32,9 @@ import java.util.Set;
 import de.greenrobot.event.EventBus;
 import lv.div.locator.actions.ConfigReloader;
 import lv.div.locator.actions.HealthCheckReport;
-import lv.div.locator.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.Const;
+import lv.div.locator.conf.Constant;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 
@@ -209,8 +211,8 @@ public class BackgroundService extends Service implements LocationListener {
             String deviceId = Main.getInstance().buildDeviceId();
 
             String wifiNetworks = Main.getInstance().wifiCache;
-            if (Main.getInstance().wifiCache.length() > Const.MAX_DB_RECORD_STRING_SIZE) {
-                wifiNetworks = Main.getInstance().wifiCache.substring(0, Const.MAX_DB_RECORD_STRING_SIZE);
+            if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
+                wifiNetworks = Main.getInstance().wifiCache.substring(0, Constant.MAX_DB_RECORD_STRING_SIZE);
             }
 
             EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
@@ -343,8 +345,8 @@ public class BackgroundService extends Service implements LocationListener {
 
         // Check whether the new location fix is newer or older
         long timeDelta = location.getTime() - Main.getInstance().currentBestLocation.getTime();
-        boolean isSignificantlyNewer = timeDelta > Const.DELAY_15_SEC;
-        boolean isSignificantlyOlder = timeDelta < -Const.DELAY_15_SEC;
+        boolean isSignificantlyNewer = timeDelta > Constant.DELAY_15_SEC;
+        boolean isSignificantlyOlder = timeDelta < -Constant.DELAY_15_SEC;
         boolean isNewer = timeDelta > 0;
 
         // If it's been more than XX sec since the current location, use the new location
@@ -448,8 +450,8 @@ public class BackgroundService extends Service implements LocationListener {
 
                         String pingMessage = conf.get(ConfigurationKey.DEVICE_ALIAS) + ": SHUTDOWN! " + Utils.fillPlaceholdersWithSystemVariables(conf.get(ConfigurationKey.DEVICE_PING_TEXT));
 
-                        if (pingMessage.length() > Const.MAX_MESSAGE_SIZE) {
-                            pingMessage = pingMessage.substring(0, Const.MAX_MESSAGE_SIZE);
+                        if (pingMessage.length() > Constant.MAX_MESSAGE_SIZE) {
+                            pingMessage = pingMessage.substring(0, Constant.MAX_MESSAGE_SIZE);
                         }
                         smsManager.sendTextMessage(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
                     }

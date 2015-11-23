@@ -34,7 +34,9 @@ import java.util.UUID;
 import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.InitialConfigLoader;
 import lv.div.locator.actions.NetworkReport;
-import lv.div.locator.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.Const;
+
 
 public class Main extends AppCompatActivity {
     //public class Main extends Application {

@@ -7,9 +7,9 @@ import java.net.URLEncoder;
 import java.util.Map;
 
 import de.greenrobot.event.EventBus;
-import lv.div.locator.Const;
 import lv.div.locator.Main;
-import lv.div.locator.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.ConfigurationKey;
+import lv.div.locator.commons.conf.Const;
 import lv.div.locator.events.EventHttpReport;
 
 public class HttpReportSender {
@@ -48,7 +48,6 @@ public class HttpReportSender {
 
             NetworkReport networkReport = new NetworkReport();
             networkReport.execute(urlAddress);
-
 
 
         } catch (Exception e) {

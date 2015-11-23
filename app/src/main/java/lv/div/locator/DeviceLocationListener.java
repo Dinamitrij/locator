@@ -6,6 +6,7 @@ import android.location.LocationListener;
 import android.os.Bundle;
 
 import de.greenrobot.event.EventBus;
+import lv.div.locator.conf.Constant;
 import lv.div.locator.events.EventHttpReport;
 
 public class DeviceLocationListener implements LocationListener {
@@ -60,8 +61,8 @@ public class DeviceLocationListener implements LocationListener {
 
         // Check whether the new location fix is newer or older
         long timeDelta = location.getTime() - Main.getInstance().currentBestLocation.getTime();
-        boolean isSignificantlyNewer = timeDelta > Const.DELAY_15_SEC;
-        boolean isSignificantlyOlder = timeDelta < -Const.DELAY_15_SEC;
+        boolean isSignificantlyNewer = timeDelta > Constant.DELAY_15_SEC;
+        boolean isSignificantlyOlder = timeDelta < -Constant.DELAY_15_SEC;
         boolean isNewer = timeDelta > 0;
 
         // If it's been more than XX sec since the current location, use the new location
