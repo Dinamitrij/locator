@@ -28,6 +28,21 @@ public class Utils {
         return simpleDateFormat.format(new Date());
     }
 
+    public static String logtime(Class clazz) {
+        return currentDate()+Const.SPACE+currentTime()+Const.SPACE+clazz.getName()+Const.SPACE;
+    }
+
+    public static String stToString(StackTraceElement[] stackTraceElements) {
+        if (stackTraceElements == null) {
+            return Const.EMPTY;
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        for (StackTraceElement element : stackTraceElements)
+            stringBuilder.append(element.toString()).append("\n");
+        return stringBuilder.toString();
+    }
+
+
     public static String fillPlaceholdersWithSystemVariables(String sourceMessage) {
         String result = sourceMessage;
         for (SystemVariable s : SystemVariable.values()) {

@@ -1,6 +1,11 @@
 package lv.div.locator.actions;
 
 
+import android.util.Log;
+
+import com.google.code.microlog4android.Logger;
+import com.google.code.microlog4android.LoggerFactory;
+
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -8,6 +13,7 @@ import java.util.Map;
 
 import de.greenrobot.event.EventBus;
 import lv.div.locator.Main;
+import lv.div.locator.Utils;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.events.EventHttpReport;
@@ -17,6 +23,7 @@ public class HttpReportSender {
     private EventBus bus = EventBus.getDefault();
     private URL url;
     private HttpURLConnection urlConnection;
+    private static final Logger log = LoggerFactory.getLogger();
 
     public HttpReportSender() {
         bus.register(this);
@@ -24,7 +31,8 @@ public class HttpReportSender {
     }
 
     public void onEvent(EventHttpReport event) {
-
+        String logText = Const.EMPTY;
+        log.debug(Utils.logtime(this.getClass()) + "onEvent() called");
         try {
             Map<ConfigurationKey, String> cfg = Main.getInstance().config;
             String urlAddress = Const.EMPTY;
@@ -39,19 +47,25 @@ public class HttpReportSender {
                 String deviceId = event.getDeviceId();
 
                 urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_URL_MASK), latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId);
+                logText = urlAddress;
 
             } else {
                 String data = URLEncoder.encode(event.getWifiData(), Const.UTF8_ENCODING);
                 urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_BSSID_URL_MASK), data);
+                logText = urlAddress;
             }
 
 
             NetworkReport networkReport = new NetworkReport();
             networkReport.execute(urlAddress);
+            log.debug(Utils.logtime(this.getClass()) + "onEvent() networkReport.execute(urlAddress);");
 
 
         } catch (Exception e) {
-            // Error. Be quiet
+            log.debug(Utils.logtime(this.getClass())+"Cannot send data: "+logText);
+            log.debug(Utils.logtime(this.getClass()) + "----> "+e.getMessage());
+            log.debug(Utils.logtime(this.getClass()) + Utils.stToString(e.getStackTrace()));
+
         }
 
     }
