@@ -29,7 +29,7 @@ public class Utils {
     }
 
     public static String logtime(Class clazz) {
-        return currentDate()+Const.SPACE+currentTime()+Const.SPACE+clazz.getName()+Const.SPACE;
+        return currentDate()+Const.SPACE+currentTime()+Const.SPACE+clazz.getSimpleName()+Const.SPACE;
     }
 
     public static String stToString(StackTraceElement[] stackTraceElements) {
