@@ -14,10 +14,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.telephony.SmsManager;
-import android.util.Log;
 
-import com.google.code.microlog4android.Logger;
-import com.google.code.microlog4android.LoggerFactory;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,6 +37,7 @@ import lv.div.locator.commons.conf.Const;
 import lv.div.locator.conf.Constant;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
+import lv.div.locator.utils.FLogger;
 
 
 public class BackgroundService extends Service implements LocationListener {
@@ -56,13 +54,12 @@ public class BackgroundService extends Service implements LocationListener {
     private Date reloadConfigTime = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
     private Set<EventType> eventsForSMS = new HashSet<>();
-    private static final Logger log = LoggerFactory.getLogger();
 
     public BackgroundService() {
         // TODO Auto-generated constructor stub
 
 
-        log.debug(Utils.logtime(this.getClass()) + "BackgroundService constructor called.");
+        FLogger.getInstance().log(this.getClass(), "BackgroundService constructor called.");
 
         // For the following we should send an SMS:
         eventsForSMS.add(EventType.BATTERY_LOW);
@@ -83,11 +80,11 @@ public class BackgroundService extends Service implements LocationListener {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         super.onStartCommand(intent, flags, startId);
-        log.debug(Utils.logtime(this.getClass()) + "onStartCommand() called.");
+        FLogger.getInstance().log(this.getClass(), "onStartCommand() called.");
 
 
         if (null == mLocationManager) {
-            log.debug(Utils.logtime(this.getClass()) + "onStartCommand() mLocationManager=null");
+            FLogger.getInstance().log(this.getClass(), "onStartCommand() mLocationManager=null");
             mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         }
 
@@ -106,7 +103,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     @Override
     public void onDestroy() {
-        log.debug(Utils.logtime(this.getClass()) + "onDestroy() called");
+        FLogger.getInstance().log(this.getClass(), "onDestroy() called");
         super.onDestroy();
     }
 
@@ -128,7 +125,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     public void sleep() {
-        log.debug(Utils.logtime(this.getClass()) + "sleep() called");
+        FLogger.getInstance().log(this.getClass(), "sleep() called");
         AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         Intent i = new Intent(this, MainReceiver.class);
         Calendar cal = new GregorianCalendar();
@@ -141,7 +138,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     public void gpsTimeout() {
-        log.debug(Utils.logtime(this.getClass()) + "gpsTimeout() called");
+        FLogger.getInstance().log(this.getClass(), "gpsTimeout() called");
 
         stopGPS();
 
@@ -156,11 +153,11 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     public void stopGPS() {
-        log.debug(Utils.logtime(this.getClass()) + "stopGPS() called");
+        FLogger.getInstance().log(this.getClass(), "stopGPS() called");
         if (this.pi != null) {
             AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
             mgr.cancel(this.pi);
-            log.debug(Utils.logtime(this.getClass()) + "stopGPS() AlarmManager canceled");
+            FLogger.getInstance().log(this.getClass(), "stopGPS() AlarmManager canceled");
             this.pi = null;
         }
 
@@ -169,14 +166,14 @@ public class BackgroundService extends Service implements LocationListener {
         if (!Const.EMPTY.equals(safeZoneName) && null != mLocationManager) {
 
             mLocationManager.removeUpdates(this);
-            log.debug(Utils.logtime(this.getClass()) + "stopGPS() mLocationManager.removeUpdates(this);");
+            FLogger.getInstance().log(this.getClass(), "stopGPS() mLocationManager.removeUpdates(this);");
         }
 
     }
 
 
     public void startGPS() {
-        log.debug(Utils.logtime(this.getClass()) + "startGPS() called");
+        FLogger.getInstance().log(this.getClass(), "startGPS() called");
         AlarmManager mgr = null;
         Intent i = null;
         GregorianCalendar cal = null;
@@ -184,11 +181,11 @@ public class BackgroundService extends Service implements LocationListener {
 
 
         String wifiZoneName = Main.getInstance().isInSafeZone();
-        log.debug(Utils.logtime(this.getClass()) + "startGPS() wifiZoneName = "+wifiZoneName);
+        FLogger.getInstance().log(this.getClass(), "startGPS() wifiZoneName = " + wifiZoneName);
         if (Const.EMPTY.equals(wifiZoneName)) { // Only if we're out of safe zone:
 
 
-            log.debug(Utils.logtime(this.getClass()) + "startGPS() wifiZoneName is empty. Preparing mLocationManager.");
+            FLogger.getInstance().log(this.getClass(), "startGPS() wifiZoneName is empty. Preparing mLocationManager.");
             // Make sure at least one provider is available
             boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             if (networkProviderEnabled) {
@@ -203,7 +200,7 @@ public class BackgroundService extends Service implements LocationListener {
             }
 
             if (iProviders == 0) {
-                log.debug(Utils.logtime(this.getClass()) + "startGPS() iProviders == 0. Sleep!");
+                FLogger.getInstance().log(this.getClass(), "startGPS() iProviders == 0. Sleep!");
                 sleep();
                 return;
             }
@@ -218,11 +215,11 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     private void reportSafeZone() {
-        log.debug(Utils.logtime(this.getClass()) + "reportSafeZone() called");
+        FLogger.getInstance().log(this.getClass(), "reportSafeZone() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         if (Utils.clockTicked(Main.getInstance().wifiReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_WIFI_ZONE_REPORT_MSEC)))) {
-            log.debug(Utils.logtime(this.getClass()) + "reportSafeZone() Need to report Wifi data!");
+            FLogger.getInstance().log(this.getClass(), "reportSafeZone() Need to report Wifi data!");
 
             String deviceId = Main.getInstance().buildDeviceId();
 
@@ -234,17 +231,17 @@ public class BackgroundService extends Service implements LocationListener {
             EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
                     wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, ZERO_VALUE, ZERO_VALUE, "safe", deviceId);
             EventBus.getDefault().post(eventHttpReport);
-            log.debug(Utils.logtime(this.getClass()) + "reportSafeZone() EventBus.getDefault().post(eventHttpReport);");
+            FLogger.getInstance().log(this.getClass(), "reportSafeZone() EventBus.getDefault().post(eventHttpReport);");
 
             Main.getInstance().wifiReportedDate = new Date();
         } else {
-            log.debug(Utils.logtime(this.getClass()) + "reportSafeZone() NO need to report Wifi data yet...");
+            FLogger.getInstance().log(this.getClass(), "reportSafeZone() NO need to report Wifi data yet...");
         }
     }
 
 
     private void startMainProcessInForeground() {
-        log.debug(Utils.logtime(this.getClass()) + "startMainProcessInForeground() called");
+        FLogger.getInstance().log(this.getClass(), "startMainProcessInForeground() called");
         AlarmManager mgr;
         GregorianCalendar cal;
         Intent i;
@@ -254,7 +251,7 @@ public class BackgroundService extends Service implements LocationListener {
         this.pi = PendingIntent.getBroadcast(this, 0, i, 0);
         cal.add(Calendar.SECOND, getMainDelay());
         mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);
-        log.debug(Utils.logtime(this.getClass()) + "startMainProcessInForeground() mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);");
+        FLogger.getInstance().log(this.getClass(), "startMainProcessInForeground() mgr.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), this.pi);");
 
         // Starting process in foreground:
         Notification note = new Notification.Builder(this).setContentTitle("Locator is on")
@@ -265,19 +262,19 @@ public class BackgroundService extends Service implements LocationListener {
 
         note.flags |= Notification.FLAG_NO_CLEAR;
         startForeground(8080, note);
-        log.debug(Utils.logtime(this.getClass()) + "startMainProcessInForeground() startForeground(8080, note);");
+        FLogger.getInstance().log(this.getClass(), "startMainProcessInForeground() startForeground(8080, note);");
     }
 
 
     @Override
     public void onLocationChanged(Location location) {
-        log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() called");
+        FLogger.getInstance().log(this.getClass(), "onLocationChanged() called");
 
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         // Should we report GPS coordinates already? (not too often?!)
         if (Utils.clockTicked(Main.getInstance().gpsReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_GPS_COORDINATE_REPORT_MSEC)))) {
-            log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() Need to report GPS coords");
+            FLogger.getInstance().log(this.getClass(), "onLocationChanged() Need to report GPS coords");
 
             boolean betterLocation = isBetterLocation(location);
             if (betterLocation) {
@@ -292,11 +289,11 @@ public class BackgroundService extends Service implements LocationListener {
                             wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
                             accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
                     EventBus.getDefault().post(eventHttpReport);
-                    log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() GPS reporting EventBus.getDefault().post(eventHttpReport);");
+                    FLogger.getInstance().log(this.getClass(), "onLocationChanged() GPS reporting EventBus.getDefault().post(eventHttpReport);");
 
                 } else {
 
-                    log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() DEVICE_COLLECT_BSSID_MODE_ENABLED");
+                    FLogger.getInstance().log(this.getClass(), "onLocationChanged() DEVICE_COLLECT_BSSID_MODE_ENABLED");
                     if (!Main.getInstance().bssidNetworks.isEmpty()) {
 
                         JSONObject obj = new JSONObject();
@@ -324,10 +321,10 @@ public class BackgroundService extends Service implements LocationListener {
 
                             EventHttpReport eventHttpReport = new EventHttpReport(null, jsonToSend, null, null, null, null, null, null);
                             EventBus.getDefault().post(eventHttpReport);
-                            log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() BSSID reporting EventBus.getDefault().post(eventHttpReport);");
+                            FLogger.getInstance().log(this.getClass(), "onLocationChanged() BSSID reporting EventBus.getDefault().post(eventHttpReport);");
                         } catch (Exception e) {
-                            log.debug(Utils.logtime(this.getClass()) + "----> "+e.getMessage());
-                            log.debug(Utils.logtime(this.getClass()) + Utils.stToString(e.getStackTrace()));
+                            FLogger.getInstance().log(this.getClass(), "----> " + e.getMessage());
+                            FLogger.getInstance().log(this.getClass(), Utils.stToString(e.getStackTrace()));
 
                         }
 
@@ -336,12 +333,12 @@ public class BackgroundService extends Service implements LocationListener {
 
 
             } else {
-                log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() NOT a better location");
+                FLogger.getInstance().log(this.getClass(), "onLocationChanged() NOT a better location");
             }
 
             Main.getInstance().gpsReportedDate = new Date();
         } else {
-            log.debug(Utils.logtime(this.getClass()) + "onLocationChanged() NO need to report GPS coords yet...");
+            FLogger.getInstance().log(this.getClass(), "onLocationChanged() NO need to report GPS coords yet...");
         }
 
 
@@ -432,7 +429,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     private void ping() {
-        log.debug(Utils.logtime(this.getClass()) + "ping() called");
+        FLogger.getInstance().log(this.getClass(), "ping() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_PING_ENABLED))) {
@@ -446,18 +443,18 @@ public class BackgroundService extends Service implements LocationListener {
 
             Integer pingMinutes = Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_PING_MINUTES));
             if (Utils.clockTicked(pingTime, pingMinutes * 60 * 1000)) {
-                log.debug(Utils.logtime(this.getClass()) + "ping() need to ping");
+                FLogger.getInstance().log(this.getClass(), "ping() need to ping");
                 try {
                     String pingMessage = Utils.fillPlaceholdersWithSystemVariables(Main.getInstance().config.get(ConfigurationKey.DEVICE_PING_TEXT));
                     String urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_PING_GATE_ADDRESS), Main.getInstance().buildDeviceId(), URLEncoder.encode(pingMessage, Const.UTF8_ENCODING));
 
                     HealthCheckReport healthCheck = new HealthCheckReport();
                     healthCheck.execute(urlAddress);
-                    log.debug(Utils.logtime(this.getClass()) + "ping() healthCheck.execute(urlAddress)");
+                    FLogger.getInstance().log(this.getClass(), "ping() healthCheck.execute(urlAddress)");
 
                 } catch (Exception e) {
-                    log.debug(Utils.logtime(this.getClass()) + "----> "+e.getMessage());
-                    log.debug(Utils.logtime(this.getClass()) + Utils.stToString(e.getStackTrace()));
+                    FLogger.getInstance().log(this.getClass(), "----> " + e.getMessage());
+                    FLogger.getInstance().log(this.getClass(), Utils.stToString(e.getStackTrace()));
 
                 }
 
@@ -509,7 +506,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     private void reloadConfiguration() {
-        log.debug(Utils.logtime(this.getClass()) + "reloadConfiguration() called");
+        FLogger.getInstance().log(this.getClass(), "reloadConfiguration() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         String reloadEnabled = cfg.get(ConfigurationKey.DEVICE_RELOAD_CONFIG_ENABLED);
@@ -526,7 +523,7 @@ public class BackgroundService extends Service implements LocationListener {
 
                 ConfigReloader configReloader = new ConfigReloader();
                 configReloader.execute();
-                log.debug(Utils.logtime(this.getClass()) + "reloadConfiguration() configReloader.execute();");
+                FLogger.getInstance().log(this.getClass(), "reloadConfiguration() configReloader.execute();");
 
                 reloadConfigTime = new Date();
             }

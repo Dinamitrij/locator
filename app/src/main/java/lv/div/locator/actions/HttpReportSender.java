@@ -1,11 +1,6 @@
 package lv.div.locator.actions;
 
 
-import android.util.Log;
-
-import com.google.code.microlog4android.Logger;
-import com.google.code.microlog4android.LoggerFactory;
-
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -17,13 +12,13 @@ import lv.div.locator.Utils;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.events.EventHttpReport;
+import lv.div.locator.utils.FLogger;
 
 public class HttpReportSender {
 
     private EventBus bus = EventBus.getDefault();
     private URL url;
     private HttpURLConnection urlConnection;
-    private static final Logger log = LoggerFactory.getLogger();
 
     public HttpReportSender() {
         bus.register(this);
@@ -32,7 +27,7 @@ public class HttpReportSender {
 
     public void onEvent(EventHttpReport event) {
         String logText = Const.EMPTY;
-        log.debug(Utils.logtime(this.getClass()) + "onEvent() called");
+        FLogger.getInstance().log(this.getClass(), "onEvent() called");
         try {
             Map<ConfigurationKey, String> cfg = Main.getInstance().config;
             String urlAddress = Const.EMPTY;
@@ -58,13 +53,13 @@ public class HttpReportSender {
 
             NetworkReport networkReport = new NetworkReport();
             networkReport.execute(urlAddress);
-            log.debug(Utils.logtime(this.getClass()) + "onEvent() networkReport.execute(urlAddress);");
+            FLogger.getInstance().log(this.getClass(), "onEvent() networkReport.execute(urlAddress);");
 
 
         } catch (Exception e) {
-            log.debug(Utils.logtime(this.getClass())+"Cannot send data: "+logText);
-            log.debug(Utils.logtime(this.getClass()) + "----> "+e.getMessage());
-            log.debug(Utils.logtime(this.getClass()) + Utils.stToString(e.getStackTrace()));
+            FLogger.getInstance().log(this.getClass(), "Cannot send data: " + logText);
+            FLogger.getInstance().log(this.getClass(), "----> " + e.getMessage());
+            FLogger.getInstance().log(this.getClass(), Utils.stToString(e.getStackTrace()));
 
         }
 

@@ -11,13 +11,6 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 
-import com.google.code.microlog4android.Level;
-import com.google.code.microlog4android.Logger;
-import com.google.code.microlog4android.LoggerFactory;
-import com.google.code.microlog4android.appender.FileAppender;
-import com.google.code.microlog4android.config.PropertyConfigurator;
-import com.google.code.microlog4android.format.PatternFormatter;
-
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -34,6 +27,7 @@ import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.InitialConfigLoader;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
+import lv.div.locator.utils.FLogger;
 
 
 public class Main extends AppCompatActivity {
@@ -43,7 +37,7 @@ public class Main extends AppCompatActivity {
 
     public static LocationManager locationManager = null;
     public static boolean locationRequested = false; // Initially - no location request
-//    public static DeviceLocationListener deviceLocationListener = new DeviceLocationListener();
+    //    public static DeviceLocationListener deviceLocationListener = new DeviceLocationListener();
     public static Location currentBestLocation;
     public static String wifiCache = Const.EMPTY;
     public static Set<String> wifiNetworksCache = new HashSet<>();
@@ -56,7 +50,6 @@ public class Main extends AppCompatActivity {
     private WifiManager wifi;
     private String deviceId;
     private Intent mainApplicationService;
-    private static final Logger log = LoggerFactory.getLogger();
 
     public static Main getInstance() {
         return mInstance;
@@ -68,8 +61,6 @@ public class Main extends AppCompatActivity {
         mInstance = this;
         mServiceInstance = null;
 
-        micrologMainConfigurator();
-
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -80,7 +71,26 @@ public class Main extends AppCompatActivity {
         InitialConfigLoader configLoader = new InitialConfigLoader();
         configLoader.execute();
 
-        log.debug(Utils.logtime(this.getClass()) + "onCreate completed.");
+        FLogger.getInstance().log(this.getClass(), "onCreate completed.");
+    }
+
+    @Override
+    protected void onPause() {
+        FLogger.getInstance().logAndFlush(this.getClass(), "onPause() called.");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        FLogger.getInstance().logAndFlush(this.getClass(), "onStop() called!");
+        super.onStop();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        FLogger.getInstance().logAndFlush(this.getClass(), "onDestroy() called!!!");
+        super.onDestroy();
     }
 
     public void startApplication() {
@@ -102,7 +112,7 @@ public class Main extends AppCompatActivity {
     }
 
     public void startup() {
-        log.debug(Utils.logtime(this.getClass()) + "startup() called");
+        FLogger.getInstance().log(this.getClass(), "startup() called");
         Intent i = new Intent(this, BackgroundService.class);
         startService(i);
     }
@@ -113,19 +123,19 @@ public class Main extends AppCompatActivity {
     }
 
     public String getWifiNetworks() {
-        log.debug(Utils.logtime(this.getClass()) + "getWifiNetworks() called");
+        FLogger.getInstance().log(this.getClass(), "getWifiNetworks() called");
         if (wifi.isWifiEnabled() == false) {
             wifi.setWifiEnabled(true);
         }
 
         if (!Utils.clockTicked(wifiCacheDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-            log.debug(Utils.logtime(this.getClass()) + "getWifiNetworks(): returning wifiCache");
+            FLogger.getInstance().log(this.getClass(), "getWifiNetworks(): returning wifiCache");
             return wifiCache;
         }
 
-        log.debug(Utils.logtime(this.getClass()) + "getWifiNetworks(): start Wifi Scan...");
+        FLogger.getInstance().log(this.getClass(), "getWifiNetworks(): start Wifi Scan...");
         wifi.startScan();
-        log.debug(Utils.logtime(this.getClass()) + "getWifiNetworks(): Wifi Scan completed");
+        FLogger.getInstance().log(this.getClass(), "getWifiNetworks(): Wifi Scan completed");
         // get list of the results in object format ( like an array )
         List<ScanResult> results = wifi.getScanResults();
         bssidNetworks.clear();
@@ -150,7 +160,7 @@ public class Main extends AppCompatActivity {
         }
 
         wifiCache = sb.toString();
-        log.debug(Utils.logtime(this.getClass()) + "getWifiNetworks(): Wifi Scan results: "+wifiCache);
+        FLogger.getInstance().log(this.getClass(), "getWifiNetworks(): Wifi Scan results: " + wifiCache);
         wifiCacheDate = new Date();
         return sb.toString();
     }
@@ -164,7 +174,7 @@ public class Main extends AppCompatActivity {
      */
     public String isInSafeZone() {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
-        log.debug(Utils.logtime(this.getClass()) + "isInSafeZone() called");
+        FLogger.getInstance().log(this.getClass(), "isInSafeZone() called");
         String result = Const.EMPTY;
 
         String currentVisibleWifiNetworks = getWifiNetworks();
@@ -175,13 +185,13 @@ public class Main extends AppCompatActivity {
 
             String[] wifiValueAndAlias = safeWifiPatternWithName.split(Const.WIFI_NAME_SEPARATOR);
             if (currentVisibleWifiNetworks.matches(wifiValueAndAlias[0])) {
-                log.debug(Utils.logtime(this.getClass()) + "isInSafeZone(): Matched Regexp: "+wifiValueAndAlias[0]);
+                FLogger.getInstance().log(this.getClass(), "isInSafeZone(): Matched Regexp: " + wifiValueAndAlias[0]);
                 result = wifiValueAndAlias[1];
                 break;
             }
 
         }
-        log.debug(Utils.logtime(this.getClass()) + "isInSafeZone(): result = "+result);
+        FLogger.getInstance().log(this.getClass(), "isInSafeZone(): result = " + result);
         return result;
 
     }
@@ -190,7 +200,7 @@ public class Main extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        log.debug(Utils.logtime(this.getClass()) + "onResume() called");
+        FLogger.getInstance().logAndFlush(this.getClass(), "onResume() called");
         minimizeApp(); //  android:launchMode="singleTask" + this - means if the App will run again - will be minimized at once and no duplicate created.
     }
 
@@ -219,28 +229,5 @@ public class Main extends AppCompatActivity {
         return deviceId;
     }
 
-    /**
-     * Configure microlog.
-     * (Thanks to https://github.com/mjromper/ code)
-     */
-    private void micrologMainConfigurator() {
-
-        PropertyConfigurator.getConfigurator(this).configure();
-        int numApp = LoggerFactory.getLogger().getNumberOfAppenders();
-
-        PatternFormatter formatter = new PatternFormatter();
-        formatter.setPattern("[%d]%:[%P] [%c] - %m %T");
-
-        for (int i = 0; i < numApp; i++) {
-            LoggerFactory.getLogger().getAppender(i).setFormatter(formatter);
-        }
-        FileAppender myFileAppender = new FileAppender();
-//        myFileAppender.setFileName("locator.log");
-        myFileAppender.setFormatter(formatter);
-        myFileAppender.setAppend(true);
-        LoggerFactory.getLogger().addAppender(myFileAppender);
-        LoggerFactory.getLogger().setLevel(Level.DEBUG);
-
-    }
 
 }
