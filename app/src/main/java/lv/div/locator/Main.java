@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ public class Main extends AppCompatActivity {
     public static Location currentBestLocation;
     public static String wifiCache = Const.EMPTY;
     public static Set<String> wifiNetworksCache = new HashSet<>();
+    public static List<Boolean> safeZoneFlags = new ArrayList<>();
     public static Map<String, String> bssidNetworks = new HashMap<>();
     public static Date wifiCacheDate = new Date(0);
     public static Date wifiReportedDate = new Date(0);

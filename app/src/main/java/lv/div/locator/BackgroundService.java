@@ -17,7 +17,6 @@ import android.telephony.SmsManager;
 
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URLEncoder;
@@ -144,6 +143,8 @@ public class BackgroundService extends Service implements LocationListener {
 
         ping(); // Send healthcheck alert if needed
 
+        reportWifiNetworks(); // Report Wifi networks if needed (especially, between SafeZone and onLocationChanged() event!)
+
         reloadConfiguration(); // Reload app configuration, if needed
 
         shutdownAppIfNeeded();
@@ -206,7 +207,7 @@ public class BackgroundService extends Service implements LocationListener {
             }
 
         } else {
-            reportSafeZone();
+            reportWifiNetworks();
         }
 
 
@@ -214,29 +215,53 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
-    private void reportSafeZone() {
-        FLogger.getInstance().log(this.getClass(), "reportSafeZone() called");
+    private void reportWifiNetworks() {
+        FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
+        String safeZoneName = Main.getInstance().isInSafeZone();
+
+        Integer safeReportTimes = Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_SAFE_ZONE_WIFI_REPORT_SLOWER_TIMES));
+
         if (Utils.clockTicked(Main.getInstance().wifiReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_WIFI_ZONE_REPORT_MSEC)))) {
-            FLogger.getInstance().log(this.getClass(), "reportSafeZone() Need to report Wifi data!");
+            FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() Need to report Wifi data!");
 
-            String deviceId = Main.getInstance().buildDeviceId();
 
-            String wifiNetworks = Main.getInstance().wifiCache;
-            if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
-                wifiNetworks = Main.getInstance().wifiCache.substring(0, Constant.MAX_DB_RECORD_STRING_SIZE);
+            if (Const.EMPTY.equals(safeZoneName)){
+                prepareAndSendWifiReport(); // NON-Safe zone - report anyway!
+            } else {
+                //Safe zone, SLOW DOWN reporting speed, if needed
+                if (Main.getInstance().safeZoneFlags.size()>=safeReportTimes) {
+                    prepareAndSendWifiReport();
+                }
             }
 
-            EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                    wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, ZERO_VALUE, ZERO_VALUE, "safe", deviceId);
-            EventBus.getDefault().post(eventHttpReport);
-            FLogger.getInstance().log(this.getClass(), "reportSafeZone() EventBus.getDefault().post(eventHttpReport);");
 
+            FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() EventBus.getDefault().post(eventHttpReport);");
             Main.getInstance().wifiReportedDate = new Date();
+
         } else {
-            FLogger.getInstance().log(this.getClass(), "reportSafeZone() NO need to report Wifi data yet...");
+
+            if (!Const.EMPTY.equals(safeZoneName)) {
+                Main.getInstance().safeZoneFlags.add(true); // Safe zone "times" accumulator for "slower" reporting in safe zones
+            }
+
+            FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() NO need to report Wifi data yet...");
         }
+    }
+
+    private void prepareAndSendWifiReport() {
+        String deviceId = Main.getInstance().buildDeviceId();
+        String wifiNetworks = Main.getInstance().getWifiNetworks();
+        if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
+            wifiNetworks = Main.getInstance().wifiCache.substring(0, Constant.MAX_DB_RECORD_STRING_SIZE);
+        }
+
+        EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
+                wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, ZERO_VALUE, ZERO_VALUE, "?", deviceId);
+        EventBus.getDefault().post(eventHttpReport);
+
+        Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
     }
 
 
@@ -274,7 +299,7 @@ public class BackgroundService extends Service implements LocationListener {
 
         // Should we report GPS coordinates already? (not too often?!)
         if (Utils.clockTicked(Main.getInstance().gpsReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_GPS_COORDINATE_REPORT_MSEC)))) {
-            FLogger.getInstance().log(this.getClass(), "onLocationChanged() Need to report GPS coords");
+            FLogger.getInstance().log(this.getClass(), "onLocationChanged() Need to report GPS coords #--->");
 
             boolean betterLocation = isBetterLocation(location);
             if (betterLocation) {

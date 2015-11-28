@@ -6,6 +6,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 import lv.div.locator.Main;
@@ -79,8 +81,21 @@ public class FLogger {
     }
 
     public static void appendLog(String text) {
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+
         File externalStorageDirectory = Environment.getExternalStorageDirectory();
-        File logFile = new File(externalStorageDirectory, "locator.txt");
+//        File logFile = null;
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy");
+        String filename = "loc." + simpleDateFormat.format(new Date()) + ".txt";
+
+//        if (!Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_PATH))) {
+        File logFile = new File(externalStorageDirectory, filename);
+//            File logFile = new File(new File(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_PATH)), filename);
+//        } else {
+//            logFile = new File(externalStorageDirectory, filename);
+//        }
+
         if (!logFile.exists()) {
             try {
                 logFile.createNewFile();
