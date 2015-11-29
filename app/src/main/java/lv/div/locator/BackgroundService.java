@@ -109,9 +109,7 @@ public class BackgroundService extends Service implements LocationListener {
             Main.getInstance().getWifiNetworks();
         }
 
-
         return START_STICKY;
-
     }
 
     @Override
@@ -138,6 +136,9 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     public void sleep() {
+//        if (Main.getInstance().shuttingDown) {
+//            return; // Do not proceed. We're shutting down now...
+//        }
         FLogger.getInstance().log(this.getClass(), "sleep() called");
         AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         Intent i = new Intent(this, MainReceiver.class);
@@ -155,10 +156,6 @@ public class BackgroundService extends Service implements LocationListener {
 
         stopGPS();
 
-        if (Main.getInstance().shuttingDown) {
-            return; // Do not proceed. We're shutting down now...
-        }
-
         ping(); // Send healthcheck alert if needed
 
         reportWifiNetworks(); // Report Wifi networks if needed (especially, between SafeZone and onLocationChanged() event!)
@@ -166,6 +163,8 @@ public class BackgroundService extends Service implements LocationListener {
         reloadConfiguration(); // Reload app configuration, if needed
 
         shutdownAppIfNeeded();
+
+        powerOff(); // Power Off application, if needed
 
         sleep();
     }
@@ -201,7 +200,7 @@ public class BackgroundService extends Service implements LocationListener {
 
         String wifiZoneName = Main.getInstance().isInSafeZone();
         FLogger.getInstance().log(this.getClass(), "startGPS() wifiZoneName = " + wifiZoneName);
-        if (Const.EMPTY.equals(wifiZoneName)) { // Only if we're out of safe zone:
+        if (Const.EMPTY.equals(wifiZoneName) && !Main.getInstance().shuttingDown) { // Only if we're out of safe zone, and NOT shutting down:
 
 
             FLogger.getInstance().log(this.getClass(), "startGPS() wifiZoneName is empty. Preparing mLocationManager.");
@@ -234,6 +233,10 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     private void reportWifiNetworks() {
+        if (Main.getInstance().shuttingDown) {
+            return; // Do not proceed. We're shutting down now...
+        }
+
         FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
@@ -305,7 +308,6 @@ public class BackgroundService extends Service implements LocationListener {
                 .setContentIntent(pi)
                 .setContentText("ContentText")
                 .build();
-
 
         note.flags |= Notification.FLAG_NO_CLEAR;
         startForeground(8080, note);
@@ -476,6 +478,10 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     private void ping() {
+        if (Main.getInstance().shuttingDown) {
+            return; // Do not proceed. We're shutting down now...
+        }
+
         FLogger.getInstance().log(this.getClass(), "ping() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
@@ -513,7 +519,9 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     private void shutdownAppIfNeeded() {
-
+        if (Main.getInstance().shuttingDown) {
+            return; // Do not proceed. We're already shutting down!
+        }
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED))) {
             String shutdownTime = cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_TIME);
@@ -521,33 +529,14 @@ public class BackgroundService extends Service implements LocationListener {
             Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", ""));
             if (current.compareTo(shutdown) > 0) { // Shutdown now!!!
                 Main.getInstance().shuttingDown = true;
-                SmsManager smsManager = SmsManager.getDefault();
-                try {
-
-                    if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
-                            && !Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
-
-                        String pingMessage = cfg.get(ConfigurationKey.DEVICE_ALIAS) + ": SHUTDOWN! " + Utils.fillPlaceholdersWithSystemVariables(cfg.get(ConfigurationKey.DEVICE_PING_TEXT));
-
-                        if (pingMessage.length() > Constant.MAX_MESSAGE_SIZE) {
-                            pingMessage = pingMessage.substring(0, Constant.MAX_MESSAGE_SIZE);
-                        }
-                        smsManager.sendTextMessage(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
-                    }
-
-                } catch (Exception e) {
-                    // quiet
-                }
-
 
                 if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_ENABLED))) {
                     // Zip Log, send to server, then, onSuccess or onFailure - close App
                     zipLogFile();
                     sendZipToServer();
                 } else {
-                    powerOff();
+                    Main.getInstance().readyForPowerOff = true;
                 }
-
 
             }
 
@@ -556,10 +545,34 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
+    private void sendShutdownSms() {
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+        SmsManager smsManager = SmsManager.getDefault();
+        try {
+
+            if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
+                    && !Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
+
+                String pingMessage = cfg.get(ConfigurationKey.DEVICE_ALIAS) + ": SHUTDOWN! " + Utils.fillPlaceholdersWithSystemVariables(cfg.get(ConfigurationKey.DEVICE_PING_TEXT));
+
+                if (pingMessage.length() > Constant.MAX_MESSAGE_SIZE) {
+                    pingMessage = pingMessage.substring(0, Constant.MAX_MESSAGE_SIZE);
+                }
+                smsManager.sendTextMessage(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
+            }
+
+        } catch (Exception e) {
+            // quiet
+        }
+    }
+
     private void powerOff() {
-        stopSelf();
-        super.onDestroy();
-        System.exit(1);
+        if (Main.getInstance().readyForPowerOff) {
+            sendShutdownSms();
+            stopSelf();
+            super.onDestroy();
+            System.exit(1);
+        }
     }
 
     private void sendZipToServer() {
@@ -592,16 +605,16 @@ public class BackgroundService extends Service implements LocationListener {
                         boolean deleted = zippedLogFileToSend.delete();
                     }
 
-                    powerOff();
+                    Main.getInstance().readyForPowerOff = true;
                 }
 
                 @Override
                 public void onFailure(int statusCode, cz.msebera.android.httpclient.Header[] headers, byte[] responseBody, Throwable error) {
-                    powerOff();
+                    Main.getInstance().readyForPowerOff = true;
                 }
             });
         } catch (Exception e) {
-            int a = 1 + 2;
+            Main.getInstance().readyForPowerOff = true;
         }
 
     }
@@ -666,6 +679,9 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     private void reloadConfiguration() {
+        if (Main.getInstance().shuttingDown) {
+            return; // Do not proceed. We're shutting down now...
+        }
         FLogger.getInstance().log(this.getClass(), "reloadConfiguration() called");
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 

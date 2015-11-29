@@ -52,7 +52,7 @@ public class Main extends AppCompatActivity {
     public static Date gpsReportedDate = new Date(0);
     public static Main mInstance;
     public static boolean shuttingDown = false;
-    public static boolean readyForShutshuttingDown = false;
+    public static boolean readyForPowerOff = false;
     private WifiManager wifi;
     private String deviceId;
     private Intent mainApplicationService;
@@ -130,6 +130,12 @@ public class Main extends AppCompatActivity {
 
     public String getWifiNetworks() {
         FLogger.getInstance().log(this.getClass(), "getWifiNetworks() called");
+
+        if (Main.getInstance().shuttingDown) {
+            FLogger.getInstance().log(this.getClass(), "getWifiNetworks() - We're shutting down! Do not poll Wifi!");
+            return wifiCache;
+        }
+
         if (wifi.isWifiEnabled() == false) {
             wifi.setWifiEnabled(true);
         }

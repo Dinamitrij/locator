@@ -15,9 +15,9 @@ public class MainReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         // Do not proceed, if we're shutting down now...
-        if (!Main.getInstance().shuttingDown) {
+//        if (!Main.getInstance().shuttingDown) {
             FLogger.getInstance().log(this.getClass(), "onReceive() called. Working...");
             Main.getInstance().startup();
-        }
+//        }
     }
 }

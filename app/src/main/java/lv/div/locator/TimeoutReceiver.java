@@ -10,12 +10,11 @@ import lv.div.locator.utils.FLogger;
 /**
  * Receives AlarmManager RTC_WAKEUPs ... stops GPS polling
  */
-public class TimeoutReceiver  extends BroadcastReceiver {
+public class TimeoutReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        FLogger.getInstance().log(this.getClass(), "onReceive() called");
+        FLogger.getInstance().log(this.getClass(), "onReceive() called. -=# Main timeout cycle #=-");
         Main.mServiceInstance.gpsTimeout();
-
     }
 }
