@@ -28,5 +28,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.0.1'
     compile 'de.greenrobot:eventbus:2.4.0'
-    compile 'com.github.Dinamitrij:locatorcommons:1.2'
+    compile 'com.github.Dinamitrij:locatorcommons:1.5'
+    compile 'com.github.loopj:android-async-http:1.4.9'
 }

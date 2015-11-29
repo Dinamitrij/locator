@@ -12,21 +12,35 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.telephony.SmsManager;
 
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import de.greenrobot.event.EventBus;
 import lv.div.locator.actions.ConfigReloader;
@@ -141,6 +155,10 @@ public class BackgroundService extends Service implements LocationListener {
 
         stopGPS();
 
+        if (Main.getInstance().shuttingDown) {
+            return; // Do not proceed. We're shutting down now...
+        }
+
         ping(); // Send healthcheck alert if needed
 
         reportWifiNetworks(); // Report Wifi networks if needed (especially, between SafeZone and onLocationChanged() event!)
@@ -227,18 +245,22 @@ public class BackgroundService extends Service implements LocationListener {
             FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() Need to report Wifi data!");
 
 
-            if (Const.EMPTY.equals(safeZoneName)){
-                prepareAndSendWifiReport(); // NON-Safe zone - report anyway!
+            if (Const.EMPTY.equals(safeZoneName)) { // NON-Safe zone - report anyway!
+                prepareAndSendWifiReport();
+                Main.getInstance().wifiReportedDate = new Date();
             } else {
                 //Safe zone, SLOW DOWN reporting speed, if needed
-                if (Main.getInstance().safeZoneFlags.size()>=safeReportTimes) {
+                if (Main.getInstance().safeZoneFlags.size() >= safeReportTimes) {
                     prepareAndSendWifiReport();
+                    Main.getInstance().wifiReportedDate = new Date();
+                } else {
+                    Main.getInstance().safeZoneFlags.add(true); // Increment accumulator
                 }
             }
 
 
             FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() EventBus.getDefault().post(eventHttpReport);");
-            Main.getInstance().wifiReportedDate = new Date();
+
 
         } else {
 
@@ -497,33 +519,146 @@ public class BackgroundService extends Service implements LocationListener {
             String shutdownTime = cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_TIME);
             Integer current = Integer.valueOf(Utils.currentTime().replaceAll(":", ""));
             Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", ""));
-            if (current.compareTo(shutdown) > 0) {
-
+            if (current.compareTo(shutdown) > 0) { // Shutdown now!!!
+                Main.getInstance().shuttingDown = true;
                 SmsManager smsManager = SmsManager.getDefault();
                 try {
 
-                    Map<ConfigurationKey, String> conf = Main.getInstance().config;
+                    if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
+                            && !Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
 
-                    if (Const.TRUE_FLAG.equals(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
-                            && !Const.EMPTY.equals(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
-
-                        String pingMessage = conf.get(ConfigurationKey.DEVICE_ALIAS) + ": SHUTDOWN! " + Utils.fillPlaceholdersWithSystemVariables(conf.get(ConfigurationKey.DEVICE_PING_TEXT));
+                        String pingMessage = cfg.get(ConfigurationKey.DEVICE_ALIAS) + ": SHUTDOWN! " + Utils.fillPlaceholdersWithSystemVariables(cfg.get(ConfigurationKey.DEVICE_PING_TEXT));
 
                         if (pingMessage.length() > Constant.MAX_MESSAGE_SIZE) {
                             pingMessage = pingMessage.substring(0, Constant.MAX_MESSAGE_SIZE);
                         }
-                        smsManager.sendTextMessage(conf.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
+                        smsManager.sendTextMessage(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, pingMessage, null, null);
                     }
 
                 } catch (Exception e) {
                     // quiet
                 }
 
-                stopSelf();
-                super.onDestroy();
-                System.exit(1);
+
+                if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_ENABLED))) {
+                    // Zip Log, send to server, then, onSuccess or onFailure - close App
+                    zipLogFile();
+                    sendZipToServer();
+                } else {
+                    powerOff();
+                }
+
+
             }
 
+        }
+
+
+    }
+
+    private void powerOff() {
+        stopSelf();
+        super.onDestroy();
+        System.exit(1);
+    }
+
+    private void sendZipToServer() {
+// gather your request parameters
+
+        final Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+
+        File zippedLogFileToSend = zipFileObject();
+        RequestParams params = new RequestParams();
+        try {
+            params.put(cfg.get(Const.DEVICE_ID_HTTP_PARAMETER), Main.getInstance().buildDeviceId());
+            params.put(cfg.get(Const.DEVICE_ALIAS_HTTP_PARAMETER), cfg.get(ConfigurationKey.DEVICE_ALIAS));
+            params.put(Const.ZIPPED_LOG_FILENAME_PARAM, zipFileName());
+            params.put(Const.ZIPPED_LOG_FILECONTENT_PARAM, new FileInputStream(zippedLogFileToSend));
+
+        } catch (FileNotFoundException e) {
+        }
+
+
+// send request
+        AsyncHttpClient client = new AsyncHttpClient();
+        try {
+            String url = cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_EXPORT_URL);
+            client.post(getBaseContext(), url, params, new AsyncHttpResponseHandler() {
+                @Override
+                public void onSuccess(int statusCode, cz.msebera.android.httpclient.Header[] headers, byte[] responseBody) {
+
+                    if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_EXPORT_URL.DEVICE_LOCAL_LOGGING_DELETE_AFTER_SENT))) {
+                        File zippedLogFileToSend = zipFileObject();
+                        boolean deleted = zippedLogFileToSend.delete();
+                    }
+
+                    powerOff();
+                }
+
+                @Override
+                public void onFailure(int statusCode, cz.msebera.android.httpclient.Header[] headers, byte[] responseBody, Throwable error) {
+                    powerOff();
+                }
+            });
+        } catch (Exception e) {
+            int a = 1 + 2;
+        }
+
+    }
+
+
+    private File zipFileObject() {
+        String zipFileName = zipFileName();
+        File externalStorageDirectory = Environment.getExternalStorageDirectory();
+        File zipFile = new File(externalStorageDirectory, zipFileName);
+        return zipFile;
+    }
+
+
+    private String zipFileName() {
+        String logFileName = Main.getInstance().buildLogFileName();
+        return logFileName + ".zip";
+    }
+
+
+    public void zipLogFile() {
+
+        File zippedLogFileToSend = zipFileObject();
+        boolean deleted = zippedLogFileToSend.delete();
+
+
+        List<String> files = new ArrayList<>();
+        String logFileName = Main.getInstance().buildLogFileName();
+        files.add(logFileName);
+
+        BufferedInputStream origin = null;
+        ZipOutputStream out = null;
+        try {
+            out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFileObject())));
+            byte data[] = new byte[Constant.ZIP_BUFFER_SIZE];
+
+            for (String file : files) {
+                FileInputStream fi = new FileInputStream(new File(Environment.getExternalStorageDirectory(), file));
+                origin = new BufferedInputStream(fi, Constant.ZIP_BUFFER_SIZE);
+                try {
+                    ZipEntry entry = new ZipEntry(file.substring(file.lastIndexOf("/") + 1));
+                    out.putNextEntry(entry);
+                    int count;
+                    while ((count = origin.read(data, 0, Constant.ZIP_BUFFER_SIZE)) != -1) {
+                        out.write(data, 0, count);
+                    }
+                } finally {
+                    origin.close();
+                }
+            }
+        } catch (Exception e) {
+            int a = 1 + 2;
+        } finally {
+            try {
+                out.close();
+            } catch (Exception e) {
+                // quiet
+            }
         }
 
 

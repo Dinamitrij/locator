@@ -39,7 +39,10 @@ public class FLogger {
      * @param logtext
      */
     public static void log(Class clazz, String logtext) {
-        logData(clazz, logtext, Constant.LOG_BUFFER_SIZE);
+        // Do not log anything, if shutting down process initiated
+        if (!Main.getInstance().shuttingDown) {
+            logData(clazz, logtext, Constant.LOG_BUFFER_SIZE);
+        }
     }
 
     /**
@@ -50,7 +53,10 @@ public class FLogger {
      * @param logtext
      */
     public static void logAndFlush(Class clazz, String logtext) {
-        logData(clazz, logtext, 0);
+        // Do not log anything, if shutting down process initiated
+        if (!Main.getInstance().shuttingDown) {
+            logData(clazz, logtext, 0);
+        }
     }
 
     private static void logData(Class clazz, String logtext, int logBufferSize) {
@@ -86,11 +92,8 @@ public class FLogger {
         File externalStorageDirectory = Environment.getExternalStorageDirectory();
 //        File logFile = null;
 
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy");
-        String filename = "loc." + simpleDateFormat.format(new Date()) + ".txt";
-
 //        if (!Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_PATH))) {
-        File logFile = new File(externalStorageDirectory, filename);
+        File logFile = new File(externalStorageDirectory, Main.getInstance().buildLogFileName());
 //            File logFile = new File(new File(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_PATH)), filename);
 //        } else {
 //            logFile = new File(externalStorageDirectory, filename);

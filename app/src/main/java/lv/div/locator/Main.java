@@ -8,9 +8,12 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -48,7 +51,8 @@ public class Main extends AppCompatActivity {
     public static Date wifiReportedDate = new Date(0);
     public static Date gpsReportedDate = new Date(0);
     public static Main mInstance;
-    public Date healthCheckTime = new Date(0);
+    public static boolean shuttingDown = false;
+    public static boolean readyForShutshuttingDown = false;
     private WifiManager wifi;
     private String deviceId;
     private Intent mainApplicationService;
@@ -229,6 +233,11 @@ public class Main extends AppCompatActivity {
 
         }
         return deviceId;
+    }
+
+    public static String buildLogFileName() {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy");
+        return "loc." + simpleDateFormat.format(new Date()) + ".txt";
     }
 
 
