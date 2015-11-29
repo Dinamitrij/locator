@@ -35,10 +35,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -57,8 +55,6 @@ public class BackgroundService extends Service implements LocationListener {
 
     public static final int MAIN_DELAY = 10;
     public static final String DEFAULT_STATE = "n/a";
-    private final static String Tag = "---IntentServicetest";
-    public static final String ZERO_VALUE = "0";
     private final IntentFilter ifilter;
     public Intent batteryStatus;
     private LocationManager mLocationManager = null;
@@ -66,26 +62,12 @@ public class BackgroundService extends Service implements LocationListener {
     private Date pingTime = new Date(0);
     private Date reloadConfigTime = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
-    private Set<EventType> eventsForSMS = new HashSet<>();
 
     public BackgroundService() {
-        // TODO Auto-generated constructor stub
-
 
         FLogger.getInstance().log(this.getClass(), "BackgroundService constructor called.");
-
-        // For the following we should send an SMS:
-        eventsForSMS.add(EventType.BATTERY_LOW);
-        eventsForSMS.add(EventType.CANNOT_CONNECT_TO_INTERNET);
-        eventsForSMS.add(EventType.WIFI_ENTER);
-        eventsForSMS.add(EventType.WIFI_LEAVE);
-        eventsForSMS.add(EventType.LOCATION);
-
-
         Main.mServiceInstance = this;
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-
-
     }
 
 
@@ -136,9 +118,6 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     public void sleep() {
-//        if (Main.getInstance().shuttingDown) {
-//            return; // Do not proceed. We're shutting down now...
-//        }
         FLogger.getInstance().log(this.getClass(), "sleep() called");
         AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         Intent i = new Intent(this, MainReceiver.class);
@@ -252,7 +231,7 @@ public class BackgroundService extends Service implements LocationListener {
                 prepareAndSendWifiReport();
                 Main.getInstance().wifiReportedDate = new Date();
             } else {
-                //Safe zone, SLOW DOWN reporting speed, if needed
+                //Safe zone, SLOW DOWN reporting speed, if needed (Internet Traffic Saver)
                 if (Main.getInstance().safeZoneFlags.size() >= safeReportTimes) {
                     prepareAndSendWifiReport();
                     Main.getInstance().wifiReportedDate = new Date();
@@ -283,7 +262,7 @@ public class BackgroundService extends Service implements LocationListener {
         }
 
         EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, ZERO_VALUE, ZERO_VALUE, "?", deviceId);
+                wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, Const.ZERO_VALUE, Const.ZERO_VALUE, "?", deviceId);
         EventBus.getDefault().post(eventHttpReport);
 
         Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
@@ -508,9 +487,7 @@ public class BackgroundService extends Service implements LocationListener {
                 } catch (Exception e) {
                     FLogger.getInstance().log(this.getClass(), "----> " + e.getMessage());
                     FLogger.getInstance().log(this.getClass(), Utils.stToString(e.getStackTrace()));
-
                 }
-
 
                 pingTime = new Date();
             }
@@ -566,6 +543,9 @@ public class BackgroundService extends Service implements LocationListener {
         }
     }
 
+    /**
+     * Shutdown application
+     */
     private void powerOff() {
         if (Main.getInstance().readyForPowerOff) {
             sendShutdownSms();
@@ -576,15 +556,13 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     private void sendZipToServer() {
-// gather your request parameters
-
         final Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         File zippedLogFileToSend = zipFileObject();
         RequestParams params = new RequestParams();
         try {
-            params.put(cfg.get(Const.DEVICE_ID_HTTP_PARAMETER), Main.getInstance().buildDeviceId());
-            params.put(cfg.get(Const.DEVICE_ALIAS_HTTP_PARAMETER), cfg.get(ConfigurationKey.DEVICE_ALIAS));
+            params.put(Const.DEVICE_ID_HTTP_PARAMETER, Main.getInstance().buildDeviceId());
+            params.put(Const.DEVICE_ALIAS_HTTP_PARAMETER, cfg.get(ConfigurationKey.DEVICE_ALIAS));
             params.put(Const.ZIPPED_LOG_FILENAME_PARAM, zipFileName());
             params.put(Const.ZIPPED_LOG_FILECONTENT_PARAM, new FileInputStream(zippedLogFileToSend));
 
@@ -592,7 +570,6 @@ public class BackgroundService extends Service implements LocationListener {
         }
 
 
-// send request
         AsyncHttpClient client = new AsyncHttpClient();
         try {
             String url = cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_EXPORT_URL);
@@ -603,6 +580,9 @@ public class BackgroundService extends Service implements LocationListener {
                     if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_EXPORT_URL.DEVICE_LOCAL_LOGGING_DELETE_AFTER_SENT))) {
                         File zippedLogFileToSend = zipFileObject();
                         boolean deleted = zippedLogFileToSend.delete();
+
+                        File oldLog = new File(Environment.getExternalStorageDirectory(), Main.getInstance().buildLogFileName());
+                        deleted = oldLog.delete();
                     }
 
                     Main.getInstance().readyForPowerOff = true;
@@ -635,10 +615,8 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     public void zipLogFile() {
-
         File zippedLogFileToSend = zipFileObject();
-        boolean deleted = zippedLogFileToSend.delete();
-
+        boolean deleted = zippedLogFileToSend.delete(); // Cleanup old ZIP file
 
         List<String> files = new ArrayList<>();
         String logFileName = Main.getInstance().buildLogFileName();
@@ -665,7 +643,7 @@ public class BackgroundService extends Service implements LocationListener {
                 }
             }
         } catch (Exception e) {
-            int a = 1 + 2;
+            // quiet
         } finally {
             try {
                 out.close();
