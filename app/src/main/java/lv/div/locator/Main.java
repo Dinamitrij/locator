@@ -8,11 +8,9 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +29,7 @@ import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.InitialConfigLoader;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
+import lv.div.locator.conf.Constant;
 import lv.div.locator.utils.FLogger;
 
 
@@ -40,8 +39,6 @@ public class Main extends AppCompatActivity {
     public static Map<ConfigurationKey, String> config = new HashMap<>();
 
     public static LocationManager locationManager = null;
-    public static boolean locationRequested = false; // Initially - no location request
-    //    public static DeviceLocationListener deviceLocationListener = new DeviceLocationListener();
     public static Location currentBestLocation;
     public static String wifiCache = Const.EMPTY;
     public static Set<String> wifiNetworksCache = new HashSet<>();
@@ -50,6 +47,7 @@ public class Main extends AppCompatActivity {
     public static Date wifiCacheDate = new Date(0);
     public static Date wifiReportedDate = new Date(0);
     public static Date gpsReportedDate = new Date(0);
+    public static Date locationReportedDate = new Date(Long.MAX_VALUE);
     public static Main mInstance;
     public static boolean shuttingDown = false;
     public static boolean readyForPowerOff = false;
@@ -204,6 +202,13 @@ public class Main extends AppCompatActivity {
 
         }
         FLogger.getInstance().log(this.getClass(), "isInSafeZone(): result = " + result);
+        if (Const.EMPTY.equals(result)) {
+            // Not a Safe Zone!
+            FLogger.getInstance().log(this.getClass(), "isInSafeZone() Not a Safe Zone! accuSize=" + Main.getInstance().safeZoneFlags.size() + " CLEARED!");
+            Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
+        }
+
+
         return result;
 
     }

@@ -232,10 +232,19 @@ public class BackgroundService extends Service implements LocationListener {
                 Main.getInstance().wifiReportedDate = new Date();
             } else {
                 //Safe zone, SLOW DOWN reporting speed, if needed (Internet Traffic Saver)
-                if (Main.getInstance().safeZoneFlags.size() >= safeReportTimes) {
+                int accuSize = Main.getInstance().safeZoneFlags.size();
+                FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize="+accuSize);
+                boolean justEntered = accuSize <= Constant.ENTER_SAFE_ZONE_POINTS;
+                boolean accumulatorFull = accuSize >= safeReportTimes;
+                if ( justEntered || accumulatorFull) {
                     prepareAndSendWifiReport();
                     Main.getInstance().wifiReportedDate = new Date();
+                    if (justEntered) {
+                        FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() ... < Constant.ENTER_SAFE_ZONE_POINTS. Inc+");
+                        Main.getInstance().safeZoneFlags.add(true); // Increment accumulator
+                    }
                 } else {
+                    FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize++");
                     Main.getInstance().safeZoneFlags.add(true); // Increment accumulator
                 }
             }
@@ -255,6 +264,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     private void prepareAndSendWifiReport() {
+        FLogger.getInstance().log(this.getClass(), "prepareAndSendWifiReport() called");
         String deviceId = Main.getInstance().buildDeviceId();
         String wifiNetworks = Main.getInstance().getWifiNetworks();
         if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
@@ -265,7 +275,10 @@ public class BackgroundService extends Service implements LocationListener {
                 wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, Const.ZERO_VALUE, Const.ZERO_VALUE, "?", deviceId);
         EventBus.getDefault().post(eventHttpReport);
 
-        Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
+        if (Main.getInstance().safeZoneFlags.size() > Constant.ENTER_SAFE_ZONE_POINTS) { // Means:  Main.getInstance().safeZoneFlags.size() >= safeReportTimes
+            FLogger.getInstance().log(this.getClass(), "prepareAndSendWifiReport() accuSize=" + Main.getInstance().safeZoneFlags.size() + " CLEARED!");
+                    Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
+        }
     }
 
 
