@@ -4,6 +4,7 @@ package lv.div.locator.actions;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.Map;
 
 import de.greenrobot.event.EventBus;
@@ -38,10 +39,10 @@ public class HttpReportSender {
                 String wifiData = URLEncoder.encode(event.getWifiData(), Const.UTF8_ENCODING);
                 String latitude = URLEncoder.encode(event.getLatitude(), Const.UTF8_ENCODING);
                 String longitude = URLEncoder.encode(event.getLongitude(), Const.UTF8_ENCODING);
-
                 String deviceId = event.getDeviceId();
+                long deviceTime = (new Date()).getTime();
 
-                urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_URL_MASK), latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId);
+                urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_URL_MASK), latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId, deviceTime);
                 logText = urlAddress;
 
             } else {
