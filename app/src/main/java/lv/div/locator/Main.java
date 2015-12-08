@@ -42,11 +42,13 @@ public class Main extends AppCompatActivity {
     public static Location currentBestLocation;
     public static String wifiCache = Const.EMPTY;
     public static Set<String> wifiNetworksCache = new HashSet<>();
-    public static List<Boolean> safeZoneFlags = new ArrayList<>();
+    public static int safeZoneTimesCount = 0;
     public static Map<String, String> bssidNetworks = new HashMap<>();
     public static Date wifiCacheDate = new Date(0);
     public static Date wifiReportedDate = new Date(0);
     public static Date gpsReportedDate = new Date(0);
+    public static boolean gpsLocationRequested = false;
+    public static Date gpsLocationRequestTime = new Date(0);
     public static Date locationReportedDate = new Date(Long.MAX_VALUE);
     public static Main mInstance;
     public static boolean shuttingDown = false;
@@ -204,8 +206,8 @@ public class Main extends AppCompatActivity {
         FLogger.getInstance().log(this.getClass(), "isInSafeZone(): result = " + result);
         if (Const.EMPTY.equals(result)) {
             // Not a Safe Zone!
-            FLogger.getInstance().log(this.getClass(), "isInSafeZone() Not a Safe Zone! accuSize=" + Main.getInstance().safeZoneFlags.size() + " CLEARED!");
-            Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
+            FLogger.getInstance().log(this.getClass(), "isInSafeZone() Not a Safe Zone! accuSize=" + Main.getInstance().safeZoneTimesCount + " CLEARED!");
+            Main.getInstance().safeZoneTimesCount = 0;// Cleanup Safe zone send(s) accumulator
         }
 
 

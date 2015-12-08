@@ -9,7 +9,7 @@ public class Constant {
     public static final String CONFIG_DOWNLOAD_URL_MASK = "http://locator.v1.lv/config/config?device=%s&text=1";
     public static final String NO_INTERNET_SMS_ALERT_POSTFIX = " / No Internet connection";
     public static final int DELAY_15_SEC = 1000 * 15 * 1;
-    public static final int NOLOCATION_DELAY_30_SEC = 1000 * 30 * 1;
+    public static final int NOLOCATION_DELAY_15_SEC = 1000 * 15 * 1;
     public static final int LOG_BUFFER_SIZE = 2048;
     public static final int ZIP_BUFFER_SIZE = 512;
     public static final int ENTER_SAFE_ZONE_POINTS = 2;
