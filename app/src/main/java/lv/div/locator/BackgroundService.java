@@ -1,6 +1,5 @@
 package lv.div.locator;
 
-
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -234,7 +233,7 @@ public class BackgroundService extends Service implements LocationListener {
             if (Const.EMPTY.equals(safeZoneName)) { // NON-Safe zone - Do we need to report this?
 
                 if (Main.getInstance().gpsLocationRequested &&
-                        Utils.clockTicked(Main.getInstance().gpsLocationRequestTime, Constant.NOLOCATION_DELAY_15_SEC )) {
+                        Utils.clockTicked(Main.getInstance().gpsLocationRequestTime, Constant.NOLOCATION_DELAY_15_SEC)) {
 
                     FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() - NON-Safe zone, but we're waiting too long for GPS location update. Let's log at least Wifi networks.");
 
@@ -246,54 +245,29 @@ public class BackgroundService extends Service implements LocationListener {
                 }
             } else {
                 //Safe zone, SLOW DOWN reporting speed, if needed (Internet Traffic Saver)
-                FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize="+Main.getInstance().safeZoneTimesCount);
+                FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize=" + Main.getInstance().safeZoneTimesCount);
                 boolean justEntered = Main.getInstance().safeZoneTimesCount <= Constant.ENTER_SAFE_ZONE_POINTS;
                 boolean accumulatorCheckPoint = (Main.getInstance().safeZoneTimesCount >= safeReportTimes) && (Main.getInstance().safeZoneTimesCount % safeReportTimes == 0);
 
                 if (justEntered) {
                     FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() justEntered! < Constant.ENTER_SAFE_ZONE_POINTS. Inc+");
                     prepareAndSendWifiReport();
-                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount +1; // Increment accumulator
+                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1; // Increment accumulator
                 } else if (accumulatorCheckPoint) {
                     FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accumulatorCheckPoint!");
                     prepareAndSendWifiReport();
-                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount +1; // Increment accumulator
+                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1; // Increment accumulator
                 } else {
-                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount +1; // Increment accumulator
+                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1; // Increment accumulator
                     FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize++; Now accu=" + Main.getInstance().safeZoneTimesCount);
                 }
 
 
-
-
-//                if ( justEntered || accumulatorFull) {
-//                    prepareAndSendWifiReport();
-//                    Main.getInstance().wifiReportedDate = new Date();
-//                    if (justEntered) {
-//                        FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() justEntered! < Constant.ENTER_SAFE_ZONE_POINTS. Inc+");
-//                        Main.getInstance().safeZoneFlags.add(true); // Increment accumulator
-//                    }
-//                } else {
-//                    if (accumulatorFull) {
-//                        Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
-//                        FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accumulatorFull! safeZoneFlags.clear()");
-//                    } else {
-//                        Main.getInstance().safeZoneFlags.add(true); // Increment accumulator
-//                        FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize++; Now accu=" + Main.getInstance().safeZoneFlags.size());
-//                    }
-//
-//                }
             }
-
 
             FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() EventBus.getDefault().post(eventHttpReport);");
 
-
         } else {
-
-//            if (!Const.EMPTY.equals(safeZoneName)) {
-//                Main.getInstance().safeZoneFlags.add(true); // Safe zone "times" accumulator for "slower" reporting in safe zones
-//            }
 
             FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() NO need to report Wifi data yet...");
         }
@@ -311,10 +285,6 @@ public class BackgroundService extends Service implements LocationListener {
                 wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, Const.ZERO_VALUE, Const.ZERO_VALUE, "?", deviceId);
         EventBus.getDefault().post(eventHttpReport);
 
-//        if (Main.getInstance().safeZoneFlags.size() > Constant.ENTER_SAFE_ZONE_POINTS) { // Means:  Main.getInstance().safeZoneFlags.size() >= safeReportTimes
-//            FLogger.getInstance().log(this.getClass(), "prepareAndSendWifiReport() accuSize=" + Main.getInstance().safeZoneFlags.size() + " CLEARED!");
-//                    Main.getInstance().safeZoneFlags.clear(); // Cleanup Safe zone send(s) accumulator
-//        }
     }
 
 
