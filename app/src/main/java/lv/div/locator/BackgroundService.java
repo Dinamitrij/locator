@@ -277,6 +277,13 @@ public class BackgroundService extends Service implements LocationListener {
         FLogger.getInstance().log(this.getClass(), "prepareAndSendWifiReport() called");
         String deviceId = Main.getInstance().buildDeviceId();
         String wifiNetworks = Main.getInstance().getWifiNetworks();
+
+        // Just mark the Cached data due to device NOT moving:
+        if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
+                && Utils.clockTicked(Main.getInstance().lastMoveDate, Integer.valueOf(Main.getInstance().config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
+            wifiNetworks = "*" + wifiNetworks;
+        }
+
         if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
             wifiNetworks = Main.getInstance().wifiCache.substring(0, Constant.MAX_DB_RECORD_STRING_SIZE);
         }
