@@ -6,10 +6,15 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.util.Log;
 
+import java.util.Date;
 import java.util.HashSet;
 
 import lv.div.locator.Main;
+import lv.div.locator.Utils;
+import lv.div.locator.commons.conf.ConfigurationKey;
+import lv.div.locator.utils.FLogger;
 
 public class MovementDetector implements SensorEventListener {
 
@@ -17,6 +22,10 @@ public class MovementDetector implements SensorEventListener {
 
     private SensorManager sensorMan;
     private Sensor accelerometer;
+    private long lastUpdate;
+    float last_x;
+    float last_y;
+    float last_z;
 
     private MovementDetector() {
     }
@@ -36,11 +45,12 @@ public class MovementDetector implements SensorEventListener {
 
     private void init() {
         sensorMan = (SensorManager) Main.getInstance().getBaseContext().getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorMan.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+//        accelerometer = sensorMan.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        accelerometer = sensorMan.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
     public void start() {
-        sensorMan.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorMan.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     public void stop() {
@@ -56,8 +66,10 @@ public class MovementDetector implements SensorEventListener {
      */
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+//        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
 
+/*
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
@@ -69,6 +81,41 @@ public class MovementDetector implements SensorEventListener {
                     listener.onMotionDetected(event, diff);
                 }
             }
+*/
+
+
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+
+            long curTime = System.currentTimeMillis();
+
+            if ((curTime - lastUpdate) > 100) {
+                long diffTime = (curTime - lastUpdate);
+                lastUpdate = curTime;
+
+                float speed = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
+//                float speed = Math.abs(x + y + z - last_x - last_y - last_z);
+
+//                Log.d(TAG, "Device motion detected - " + speed);
+                if (speed > 20 && Utils.clockTicked(Main.getInstance().deviceMotionTimeout, 3000)) {
+                    Main.getInstance().deviceMotionTimeout = new Date();
+
+                    FLogger.getInstance().log(this.getClass(), "onSensorChanged(): MOTION detected (once in 3 sec.)- " + speed);
+
+//                Log.d(TAG, "Device motion detected!!!!");
+                    for (Listener listener : mListeners) {
+                        listener.onMotionDetected(event, speed);
+                    }
+                }
+
+
+                last_x = x;
+                last_y = y;
+                last_z = z;
+            }
+
+
         }
 
     }

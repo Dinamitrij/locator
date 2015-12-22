@@ -136,6 +136,11 @@ public class BackgroundService extends Service implements LocationListener {
 
         ping(); // Send healthcheck alert if needed
 
+        // Detect device motion
+        if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, 8000)) { // Moved earlier than 8 seconds ago
+            Main.getInstance().deviceWasMoved = false;
+        }
+
         reportWifiNetworks(); // Report Wifi networks if needed (especially, between SafeZone and onLocationChanged() event!)
 
         reloadConfiguration(); // Reload app configuration, if needed
@@ -279,10 +284,10 @@ public class BackgroundService extends Service implements LocationListener {
         String wifiNetworks = Main.getInstance().getWifiNetworks();
 
         // Just mark the Cached data due to device NOT moving:
-        if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
-                && Utils.clockTicked(Main.getInstance().lastMoveDate, Integer.valueOf(Main.getInstance().config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-            wifiNetworks = "*" + wifiNetworks;
-        }
+//        if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
+//                && !Main.getInstance().deviceWasMoved) {
+//            wifiNetworks = "*" + wifiNetworks;
+//        }
 
         if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
             wifiNetworks = Main.getInstance().wifiCache.substring(0, Constant.MAX_DB_RECORD_STRING_SIZE);

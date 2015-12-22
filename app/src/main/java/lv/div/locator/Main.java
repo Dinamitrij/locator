@@ -48,7 +48,9 @@ public class Main extends AppCompatActivity {
     public static Date wifiCacheDate = new Date(0);
     public static Date wifiReportedDate = new Date(0);
     public static Date gpsReportedDate = new Date(0);
-    public static Date lastMoveDate = new Date(Long.MAX_VALUE);
+    public static Date deviceMotionTimeout = new Date(0);
+    public static boolean deviceWasMoved = true; // default value to force Wifi scan
+    public static Date deviceMovedTime = new Date(Long.MAX_VALUE);
     public static boolean gpsLocationRequested = false;
     public static Date gpsLocationRequestTime = new Date(0);
     public static Main mInstance;
@@ -80,9 +82,15 @@ public class Main extends AppCompatActivity {
 
             @Override
             public void onMotionDetected(SensorEvent event, float acceleration) {
-                if (acceleration > 0.4f) {
-                    lastMoveDate = new Date(); // Device moved
-                }
+
+//                if (acceleration > 0.4f) {
+                deviceWasMoved = true; // Device moved
+                previousSafeZoneCall = Const.EMPTY;
+                deviceMovedTime = new Date(); // ...now
+
+                FLogger.getInstance().log(this.getClass(), "MovementDetector::onMotionDetected(): acceleration detected - " + acceleration);
+
+//                }
             }
         });
 
@@ -106,6 +114,13 @@ public class Main extends AppCompatActivity {
         super.onStop();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        FLogger.getInstance().logAndFlush(this.getClass(), "onResume() called");
+        minimizeApp(); //  android:launchMode="singleTask" + this - means if the App will run again - will be minimized at once and no duplicate created.
+        MovementDetector.getInstance().start();
+    }
 
     @Override
     protected void onDestroy() {
@@ -156,11 +171,18 @@ public class Main extends AppCompatActivity {
             return wifiCache;
         }
 
+        // Just mark the Cached data due to device NOT moving:
         if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
-                && Utils.clockTicked(Main.getInstance().lastMoveDate, Integer.valueOf(Main.getInstance().config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-            // Do NOT scan Wifi networks, if device is in Safe Zone and isn't moving
-            return wifiCache;
+                && !Main.getInstance().deviceWasMoved) {
+            return "*" + wifiCache;
         }
+
+
+//        if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
+//                && Utils.clockTicked(Main.getInstance().deviceWasMoved, Integer.valueOf(Main.getInstance().config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
+//            // Do NOT scan Wifi networks, if device is in Safe Zone and isn't moving
+//            return wifiCache;
+//        }
 
         if (wifi.isWifiEnabled() == false) {
             wifi.setWifiEnabled(true);
@@ -210,10 +232,8 @@ public class Main extends AppCompatActivity {
         FLogger.getInstance().log(this.getClass(), "isInSafeZone() called");
         String result = Const.EMPTY;
 
-
-        if (!Const.EMPTY.equals(previousSafeZoneCall)
-                && Utils.clockTicked(lastMoveDate, Integer.valueOf(config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-            FLogger.getInstance().log(this.getClass(), "isInSafeZone(): Device hasn't moved! Returning previousSafeZoneCall");
+        if (!Const.EMPTY.equals(previousSafeZoneCall) && !deviceWasMoved) {
+            FLogger.getInstance().log(this.getClass(), "isInSafeZone(): deviceWasMoved=FALSE! Returning previousSafeZoneCall");
 //            Log.d("cs", "Device hasn't moved! Returning previousSafeZoneCall - "+previousSafeZoneCall);
             return previousSafeZoneCall; // "*" means - NO movement
         } else {
@@ -239,6 +259,7 @@ public class Main extends AppCompatActivity {
             // Not a Safe Zone!
             FLogger.getInstance().log(this.getClass(), "isInSafeZone() Not a Safe Zone! accuSize=" + Main.getInstance().safeZoneTimesCount + " CLEARED!");
             Main.getInstance().safeZoneTimesCount = 0;// Cleanup Safe zone send(s) accumulator
+            deviceWasMoved = true; // Reset motion variable. Out of safe zone, assumed moving. Enable rescan Wifi
         }
 
 //        Log.d("cs", "isInSafeZone result = "+result);
@@ -248,13 +269,7 @@ public class Main extends AppCompatActivity {
     }
 
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        FLogger.getInstance().logAndFlush(this.getClass(), "onResume() called");
-        minimizeApp(); //  android:launchMode="singleTask" + this - means if the App will run again - will be minimized at once and no duplicate created.
-        MovementDetector.getInstance().start();
-    }
+
 
     /**
      * Generating Device ID
