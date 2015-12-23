@@ -45,8 +45,10 @@ import lv.div.locator.actions.HealthCheckReport;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.conf.Constant;
+import lv.div.locator.events.AccelerometerListener;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
+import lv.div.locator.events.MovementDetector;
 import lv.div.locator.utils.FLogger;
 
 
@@ -135,6 +137,11 @@ public class BackgroundService extends Service implements LocationListener {
         stopGPS();
 
         ping(); // Send healthcheck alert if needed
+
+        // Accelerometer re-initialization
+        MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
+        // Accelerometer restart
+        MovementDetector.getInstance().start();
 
         // Detect device motion
         if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, 8000)) { // Moved earlier than 8 seconds ago

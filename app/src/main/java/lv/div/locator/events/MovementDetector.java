@@ -41,7 +41,8 @@ public class MovementDetector implements SensorEventListener {
     }
 
     //////////////////////
-    private HashSet<Listener> mListeners = new HashSet<MovementDetector.Listener>();
+//    private HashSet<Listener> mListeners = new HashSet<MovementDetector.Listener>();
+    private IAccelerometerListener accelerometerListener;
 
     private void init() {
         sensorMan = (SensorManager) Main.getInstance().getBaseContext().getSystemService(Context.SENSOR_SERVICE);
@@ -57,8 +58,8 @@ public class MovementDetector implements SensorEventListener {
         sensorMan.unregisterListener(this);
     }
 
-    public void addListener(Listener listener) {
-        mListeners.add(listener);
+    public void setListener(IAccelerometerListener listener) {
+        accelerometerListener = listener;
     }
 
     /* (non-Javadoc)
@@ -90,9 +91,17 @@ public class MovementDetector implements SensorEventListener {
                     FLogger.getInstance().log(this.getClass(), "onSensorChanged(): MOTION detected (once in 3 sec.)- " + sensorValue);
 
 //                Log.d(TAG, "Device motion detected!!!!");
-                    for (Listener listener : mListeners) {
-                        listener.onMotionDetected(event, sensorValue);
+//                    for (Listener listener : mListeners) {
+//                        listener.onMotionDetected(event, sensorValue);
+//                    }
+                    if (null!=accelerometerListener) {
+                        accelerometerListener.onMotionDetected(event, sensorValue);
+                    } else {
+                        FLogger.getInstance().log(this.getClass(), "onSensorChanged(): accelerometerListener was not set!");
                     }
+
+
+
                 }
 
 
@@ -115,7 +124,4 @@ public class MovementDetector implements SensorEventListener {
 
     }
 
-    public interface Listener {
-        void onMotionDetected(SensorEvent event, float acceleration);
-    }
 }

@@ -29,6 +29,7 @@ import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.InitialConfigLoader;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
+import lv.div.locator.events.AccelerometerListener;
 import lv.div.locator.events.MovementDetector;
 import lv.div.locator.utils.FLogger;
 
@@ -77,23 +78,8 @@ public class Main extends AppCompatActivity {
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
 
-
-        MovementDetector.getInstance().addListener(new MovementDetector.Listener() {
-
-            @Override
-            public void onMotionDetected(SensorEvent event, float acceleration) {
-
-//                if (acceleration > 0.4f) {
-                deviceWasMoved = true; // Device moved
-                previousSafeZoneCall = Const.EMPTY;
-                deviceMovedTime = new Date(); // ...now
-
-                FLogger.getInstance().log(this.getClass(), "MovementDetector::onMotionDetected(): acceleration detected - " + acceleration);
-
-//                }
-            }
-        });
-
+        // Accelerometer initialization
+        MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
 
         InitialConfigLoader configLoader = new InitialConfigLoader();
         configLoader.execute();
@@ -119,7 +105,7 @@ public class Main extends AppCompatActivity {
         super.onResume();
         FLogger.getInstance().logAndFlush(this.getClass(), "onResume() called");
         minimizeApp(); //  android:launchMode="singleTask" + this - means if the App will run again - will be minimized at once and no duplicate created.
-        MovementDetector.getInstance().start();
+//        MovementDetector.getInstance().start();
     }
 
     @Override
