@@ -66,23 +66,7 @@ public class MovementDetector implements SensorEventListener {
      */
     @Override
     public void onSensorChanged(SensorEvent event) {
-//        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-
-/*
-            float x = event.values[0];
-            float y = event.values[1];
-            float z = event.values[2];
-
-            float diff = (float) Math.sqrt(x * x + y * y + z * z);
-            if (diff > 0.4) {// 0.5 is a threshold, you can test it and change it
-//                Log.d(TAG, "Device motion detected!!!!");
-                for (Listener listener : mListeners) {
-                    listener.onMotionDetected(event, diff);
-                }
-            }
-*/
-
 
             float x = event.values[0];
             float y = event.values[1];
@@ -91,21 +75,23 @@ public class MovementDetector implements SensorEventListener {
             long curTime = System.currentTimeMillis();
 
             if ((curTime - lastUpdate) > 100) {
-                long diffTime = (curTime - lastUpdate);
+//                long diffTime = (curTime - lastUpdate);
                 lastUpdate = curTime;
 
-                float speed = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
-//                float speed = Math.abs(x + y + z - last_x - last_y - last_z);
+//                float sensorValue = 0L;
+//                float sensorValue = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
+                float sensorValue = Math.abs(x + y + z - last_x - last_y - last_z) / 200 * 10000;
 
-//                Log.d(TAG, "Device motion detected - " + speed);
-                if (speed > 20 && Utils.clockTicked(Main.getInstance().deviceMotionTimeout, 3000)) {
+
+//                Log.d(TAG, "Device motion detected - " + sensorValue);
+                if (sensorValue > 20 && Utils.clockTicked(Main.getInstance().deviceMotionTimeout, 3000)) {
                     Main.getInstance().deviceMotionTimeout = new Date();
 
-                    FLogger.getInstance().log(this.getClass(), "onSensorChanged(): MOTION detected (once in 3 sec.)- " + speed);
+                    FLogger.getInstance().log(this.getClass(), "onSensorChanged(): MOTION detected (once in 3 sec.)- " + sensorValue);
 
 //                Log.d(TAG, "Device motion detected!!!!");
                     for (Listener listener : mListeners) {
-                        listener.onMotionDetected(event, speed);
+                        listener.onMotionDetected(event, sensorValue);
                     }
                 }
 
