@@ -54,6 +54,9 @@ import lv.div.locator.utils.FLogger;
 
 public class BackgroundService extends Service implements LocationListener {
 
+    /**
+     * Main work cycle length, sec.
+     */
     public static final int MAIN_DELAY = 10;
     public static final String DEFAULT_STATE = "n/a";
     private final IntentFilter ifilter;
@@ -78,6 +81,7 @@ public class BackgroundService extends Service implements LocationListener {
         super.onStartCommand(intent, flags, startId);
         FLogger.getInstance().log(this.getClass(), "onStartCommand() called.");
 
+        initAccelerometer();
 
         if (null == mLocationManager) {
             FLogger.getInstance().log(this.getClass(), "onStartCommand() mLocationManager=null");
@@ -109,7 +113,7 @@ public class BackgroundService extends Service implements LocationListener {
      */
     private int getMainDelay() {
         return MAIN_DELAY;
-    } // once per 10 sec.
+    }
 
 
     @Override
@@ -120,6 +124,8 @@ public class BackgroundService extends Service implements LocationListener {
 
     public void sleep() {
         FLogger.getInstance().log(this.getClass(), "sleep() called");
+        initAccelerometer();
+
         AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         Intent i = new Intent(this, MainReceiver.class);
         Calendar cal = new GregorianCalendar();
@@ -138,13 +144,13 @@ public class BackgroundService extends Service implements LocationListener {
 
         ping(); // Send healthcheck alert if needed
 
-        // Accelerometer re-initialization
-        MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
-        // Accelerometer restart
-        MovementDetector.getInstance().start();
+        initAccelerometer();
+
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         // Detect device motion
-        if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, 8000)) { // Moved earlier than 8 seconds ago
+        if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_NOT_MOVED_THRESHOLD_MSEC)))) {
+            // Moved earlier than XXX seconds ago
             Main.getInstance().deviceWasMoved = false;
         }
 
@@ -159,24 +165,29 @@ public class BackgroundService extends Service implements LocationListener {
         sleep();
     }
 
+    /**
+     * Init and/or reset accelerometer stuff
+     */
+    private void initAccelerometer() {
+        // Accelerometer re-initialization
+        MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
+        // Accelerometer restart
+        MovementDetector.getInstance().start();
+    }
+
 
     public void stopGPS() {
         FLogger.getInstance().log(this.getClass(), "stopGPS() called");
         if (this.pi != null) {
             AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
             mgr.cancel(this.pi);
-            FLogger.getInstance().log(this.getClass(), "stopGPS() AlarmManager canceled");
             this.pi = null;
         }
 
-
         String safeZoneName = Main.getInstance().isInSafeZone();
         if (!Const.EMPTY.equals(safeZoneName) && null != mLocationManager) {
-
             mLocationManager.removeUpdates(this);
-            FLogger.getInstance().log(this.getClass(), "stopGPS() mLocationManager.removeUpdates(this);");
         }
-
     }
 
 
@@ -193,7 +204,7 @@ public class BackgroundService extends Service implements LocationListener {
         if (Const.EMPTY.equals(wifiZoneName) && !Main.getInstance().shuttingDown) { // Only if we're out of safe zone, and NOT shutting down:
 
 
-            FLogger.getInstance().log(this.getClass(), "startGPS() wifiZoneName is empty. Preparing mLocationManager.");
+            FLogger.getInstance().log(this.getClass(), "startGPS() wifiZoneName is empty. Preparing mLocationManager (GPS)");
             // Make sure at least one provider is available
             boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             if (networkProviderEnabled) {
@@ -257,20 +268,18 @@ public class BackgroundService extends Service implements LocationListener {
                 }
             } else {
                 //Safe zone, SLOW DOWN reporting speed, if needed (Internet Traffic Saver)
-                FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize=" + Main.getInstance().safeZoneTimesCount);
                 boolean justEntered = Main.getInstance().safeZoneTimesCount <= Constant.ENTER_SAFE_ZONE_POINTS;
                 boolean accumulatorCheckPoint = (Main.getInstance().safeZoneTimesCount >= safeReportTimes) && (Main.getInstance().safeZoneTimesCount % safeReportTimes == 0);
 
                 if (justEntered) {
-                    FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() justEntered! < Constant.ENTER_SAFE_ZONE_POINTS. Inc+");
+                    FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() justEntered");
                     prepareAndSendWifiReport();
-                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1; // Increment accumulator
+                    incrementAccumulator();
                 } else if (accumulatorCheckPoint) {
-                    FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accumulatorCheckPoint!");
                     prepareAndSendWifiReport();
-                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1; // Increment accumulator
+                    incrementAccumulator();
                 } else {
-                    Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1; // Increment accumulator
+                    incrementAccumulator();
                     FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() accuSize++; Now accu=" + Main.getInstance().safeZoneTimesCount);
                 }
 
@@ -283,6 +292,13 @@ public class BackgroundService extends Service implements LocationListener {
 
             FLogger.getInstance().log(this.getClass(), "reportWifiNetworks() NO need to report Wifi data yet...");
         }
+    }
+
+    /**
+     * Increment accumulator
+     */
+    private void incrementAccumulator() {
+        Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1;
     }
 
     private void prepareAndSendWifiReport() {
@@ -541,9 +557,15 @@ public class BackgroundService extends Service implements LocationListener {
         }
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED))) {
+            String safeZoneName = Main.getInstance().isInSafeZone();
+            if (Const.EMPTY.equals(safeZoneName) && !Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SHUTDOWN_IF_NOT_IN_SAFE_ZONE))) {
+                // We cannot shutdown, if we're NOT in safe zone (disabled by configuration)
+                return;
+            }
+
             String shutdownTime = cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_TIME);
-            Integer current = Integer.valueOf(Utils.currentTime().replaceAll(":", ""));
-            Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", ""));
+            Integer current = Integer.valueOf(Utils.currentTime().replaceAll(":", Const.EMPTY));
+            Integer shutdown = Integer.valueOf(shutdownTime.replaceAll(":", Const.EMPTY));
             if (current.compareTo(shutdown) > 0) { // Shutdown now!!!
                 Main.getInstance().shuttingDown = true;
 

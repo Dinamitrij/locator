@@ -36,6 +36,7 @@ import lv.div.locator.utils.FLogger;
 
 public class Main extends AppCompatActivity {
 
+    public static final int MAX_VALUE_FOR_RANDOM = 999999;
     public static BackgroundService mServiceInstance;
     public static Map<ConfigurationKey, String> config = new HashMap<>();
 
@@ -105,7 +106,6 @@ public class Main extends AppCompatActivity {
         super.onResume();
         FLogger.getInstance().logAndFlush(this.getClass(), "onResume() called");
         minimizeApp(); //  android:launchMode="singleTask" + this - means if the App will run again - will be minimized at once and no duplicate created.
-//        MovementDetector.getInstance().start();
     }
 
     @Override
@@ -163,20 +163,11 @@ public class Main extends AppCompatActivity {
             return "*" + wifiCache;
         }
 
-
-//        if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
-//                && Utils.clockTicked(Main.getInstance().deviceWasMoved, Integer.valueOf(Main.getInstance().config.get(ConfigurationKey.DEVICE_WIFI_REFRESH_MSEC)))) {
-//            // Do NOT scan Wifi networks, if device is in Safe Zone and isn't moving
-//            return wifiCache;
-//        }
-
         if (wifi.isWifiEnabled() == false) {
             wifi.setWifiEnabled(true);
         }
 
-        FLogger.getInstance().log(this.getClass(), "getWifiNetworks(): start Wifi Scan...");
         wifi.startScan();
-        FLogger.getInstance().log(this.getClass(), "getWifiNetworks(): Wifi Scan completed");
         // get list of the results in object format ( like an array )
         List<ScanResult> results = wifi.getScanResults();
         bssidNetworks.clear();
@@ -220,10 +211,7 @@ public class Main extends AppCompatActivity {
 
         if (!Const.EMPTY.equals(previousSafeZoneCall) && !deviceWasMoved) {
             FLogger.getInstance().log(this.getClass(), "isInSafeZone(): deviceWasMoved=FALSE! Returning previousSafeZoneCall");
-//            Log.d("cs", "Device hasn't moved! Returning previousSafeZoneCall - "+previousSafeZoneCall);
             return previousSafeZoneCall; // "*" means - NO movement
-        } else {
-//            Log.d("cs", "Device WAS moved! Needs to SCAN Wifi...");
         }
 
         String currentVisibleWifiNetworks = getWifiNetworks();
@@ -248,10 +236,8 @@ public class Main extends AppCompatActivity {
             deviceWasMoved = true; // Reset motion variable. Out of safe zone, assumed moving. Enable rescan Wifi
         }
 
-//        Log.d("cs", "isInSafeZone result = "+result);
         previousSafeZoneCall = result; // Refresh value
         return result;
-
     }
 
 
@@ -275,7 +261,7 @@ public class Main extends AppCompatActivity {
                 deviceId = deviceUuid.toString();
 
             } catch (Exception e) {
-                deviceId = String.valueOf(Math.round(Math.random() * 999999));
+                deviceId = String.valueOf(Math.round(Math.random() * MAX_VALUE_FOR_RANDOM));
             }
 
         }

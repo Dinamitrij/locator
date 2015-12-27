@@ -1,7 +1,6 @@
 package lv.div.locator.events;
 
 import android.hardware.SensorEvent;
-import android.util.Log;
 
 import java.util.Date;
 
@@ -28,13 +27,9 @@ public class AccelerometerListener implements IAccelerometerListener {
 
     @Override
     public void onMotionDetected(SensorEvent event, float acceleration) {
-        //                if (acceleration > 0.4f) {
         Main.getInstance().deviceWasMoved = true; // Device moved
         Main.getInstance().previousSafeZoneCall = Const.EMPTY;
         Main.getInstance().deviceMovedTime = new Date(); // ...now
-
-//        Log.d("Acc", "AccelerometerListener::onMotionDetected(): acceleration detected - " + acceleration);
-        FLogger.getInstance().log(this.getClass(), "AccelerometerListener::onMotionDetected(): acceleration detected - " + acceleration);
-
+        FLogger.getInstance().log(this.getClass(), "AccelerometerListener: acceleration = " + acceleration);
     }
 }

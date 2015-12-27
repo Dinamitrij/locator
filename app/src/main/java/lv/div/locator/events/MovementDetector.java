@@ -6,10 +6,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.util.Log;
 
 import java.util.Date;
-import java.util.HashSet;
+import java.util.Map;
 
 import lv.div.locator.Main;
 import lv.div.locator.Utils;
@@ -18,8 +17,10 @@ import lv.div.locator.utils.FLogger;
 
 public class MovementDetector implements SensorEventListener {
 
-    protected final String TAG = getClass().getSimpleName();
-
+    /**
+     * Timer threshold for low level accelerometer check. Used for filtering "noise" values.
+     */
+    public static final int LOW_LEVEL_SENSOR_CHECK_TIME_MSEC = 100;
     private SensorManager sensorMan;
     private Sensor accelerometer;
     private long lastUpdate;
@@ -40,13 +41,10 @@ public class MovementDetector implements SensorEventListener {
         return mInstance;
     }
 
-    //////////////////////
-//    private HashSet<Listener> mListeners = new HashSet<MovementDetector.Listener>();
     private IAccelerometerListener accelerometerListener;
 
     private void init() {
         sensorMan = (SensorManager) Main.getInstance().getBaseContext().getSystemService(Context.SENSOR_SERVICE);
-//        accelerometer = sensorMan.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         accelerometer = sensorMan.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
@@ -75,36 +73,25 @@ public class MovementDetector implements SensorEventListener {
 
             long curTime = System.currentTimeMillis();
 
-            if ((curTime - lastUpdate) > 100) {
-//                long diffTime = (curTime - lastUpdate);
+            if ((curTime - lastUpdate) > LOW_LEVEL_SENSOR_CHECK_TIME_MSEC) {
                 lastUpdate = curTime;
 
-//                float sensorValue = 0L;
-//                float sensorValue = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
+                // 200 & 10000 Just adjusted numbers for checking accelerometer values
                 float sensorValue = Math.abs(x + y + z - last_x - last_y - last_z) / 200 * 10000;
 
+                Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
-//                Log.d(TAG, "Device motion detected - " + sensorValue);
-                if (sensorValue > 20 && Utils.clockTicked(Main.getInstance().deviceMotionTimeout, 3000)) {
+                if (sensorValue > Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_ACCELEROMETER_THRESHOLD)) &&
+                        Utils.clockTicked(Main.getInstance().deviceMotionTimeout, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_ACCELEROMETER_CHECK_TIME_MSEC)))) {
                     Main.getInstance().deviceMotionTimeout = new Date();
 
                     FLogger.getInstance().log(this.getClass(), "onSensorChanged(): MOTION detected (once in 3 sec.)- " + sensorValue);
-
-//                Log.d(TAG, "Device motion detected!!!!");
-//                    for (Listener listener : mListeners) {
-//                        listener.onMotionDetected(event, sensorValue);
-//                    }
-                    if (null!=accelerometerListener) {
+                    if (null != accelerometerListener) {
                         accelerometerListener.onMotionDetected(event, sensorValue);
                     } else {
                         FLogger.getInstance().log(this.getClass(), "onSensorChanged(): accelerometerListener was not set!");
                     }
-
-
-
                 }
-
-
                 last_x = x;
                 last_y = y;
                 last_z = z;
