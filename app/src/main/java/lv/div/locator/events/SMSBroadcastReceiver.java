@@ -25,7 +25,7 @@ public class SMSBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (SMSACTION.equals(intent.getAction())) {
+        if (intent.getAction().equals(SMSACTION)) {
             //StringBuilder sb = new StringBuilder();
 
             Bundle bundle = intent.getExtras();
@@ -50,9 +50,9 @@ public class SMSBroadcastReceiver extends BroadcastReceiver {
                     // Stop application: overwriting some config values to emulate the need of shutdown
                     try {
                         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
-                        cfg.put(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED, "1");
+                        cfg.put(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED, Const.TRUE_FLAG);
                         cfg.put(ConfigurationKey.DEVICE_APP_SHUTDOWN_TIME, "00:00:00");
-                        cfg.put(ConfigurationKey.DEVICE_SHUTDOWN_IF_NOT_IN_SAFE_ZONE, "1");
+                        cfg.put(ConfigurationKey.DEVICE_SHUTDOWN_IF_NOT_IN_SAFE_ZONE, Const.TRUE_FLAG);
                     } catch (Exception e) {
                         // be quiet...
                     }
