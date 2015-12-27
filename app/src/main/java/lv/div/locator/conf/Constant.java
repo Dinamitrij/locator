@@ -13,4 +13,6 @@ public class Constant {
     public static final int LOG_BUFFER_SIZE = 2048;
     public static final int ZIP_BUFFER_SIZE = 512;
     public static final int ENTER_SAFE_ZONE_POINTS = 2;
+    public static final String SMS_COMMAND_START_APP = "#LOCSTART";
+    public static final String SMS_COMMAND_STOP_APP = "#LOCSTOP";
 }

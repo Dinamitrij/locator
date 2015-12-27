@@ -22,6 +22,12 @@
         <receiver android:name="lv.div.locator.TimeoutReceiver" />
         <service android:name="lv.div.locator.BackgroundService" />
 
+        <receiver android:name="lv.div.locator.events.SMSBroadcastReceiver" >
+            <intent-filter android:priority="500">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
     <uses-permission android:name="android.permission.SEND_SMS"/>
@@ -39,6 +45,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
 
 </manifest>
