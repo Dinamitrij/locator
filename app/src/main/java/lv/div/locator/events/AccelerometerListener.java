@@ -28,6 +28,7 @@ public class AccelerometerListener implements IAccelerometerListener {
     @Override
     public void onMotionDetected(SensorEvent event, float acceleration) {
         Main.getInstance().deviceWasMoved = true; // Device moved
+        Main.getInstance().accelerometerValue = Math.round(acceleration); // last movement value
         Main.getInstance().previousSafeZoneCall = Const.EMPTY;
         Main.getInstance().deviceMovedTime = new Date(); // ...now
         FLogger.getInstance().log(this.getClass(), "AccelerometerListener: acceleration = " + acceleration);

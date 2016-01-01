@@ -150,8 +150,9 @@ public class BackgroundService extends Service implements LocationListener {
 
         // Detect device motion
         if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_NOT_MOVED_THRESHOLD_MSEC)))) {
-            // Moved earlier than XXX seconds ago
+            // Device was NOT moved during the last XXX seconds...
             Main.getInstance().deviceWasMoved = false;
+            Main.getInstance().accelerometerValue = 0;
         }
 
         reportWifiNetworks(); // Report Wifi networks if needed (especially, between SafeZone and onLocationChanged() event!)
@@ -340,6 +341,7 @@ public class BackgroundService extends Service implements LocationListener {
         Notification note = new Notification.Builder(this).setContentTitle("Locator is on")
                 .setContentIntent(pi)
                 .setContentText("ContentText")
+                .setPriority(Notification.PRIORITY_MIN)
                 .build();
 
         note.flags |= Notification.FLAG_NO_CLEAR;

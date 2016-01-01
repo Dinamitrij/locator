@@ -52,6 +52,7 @@ public class Main extends AppCompatActivity {
     public static Date gpsReportedDate = new Date(0);
     public static Date deviceMotionTimeout = new Date(0);
     public static boolean deviceWasMoved = true; // default value to force Wifi scan
+    public static int accelerometerValue = 0; // last movement value
     public static Date deviceMovedTime = new Date(Long.MAX_VALUE);
     public static boolean gpsLocationRequested = false;
     public static Date gpsLocationRequestTime = new Date(0);
@@ -157,7 +158,7 @@ public class Main extends AppCompatActivity {
             return wifiCache;
         }
 
-        // Just mark the Cached data due to device NOT moving:
+        // Just mark the CACHED(!) data due to device NOT moving:
         if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
                 && !Main.getInstance().deviceWasMoved) {
             return "*" + wifiCache;
