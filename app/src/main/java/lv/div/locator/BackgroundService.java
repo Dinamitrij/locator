@@ -81,7 +81,7 @@ public class BackgroundService extends Service implements LocationListener {
         super.onStartCommand(intent, flags, startId);
         FLogger.getInstance().log(this.getClass(), "onStartCommand() called.");
 
-        initAccelerometer();
+        refreshAccelerometer();
 
         if (null == mLocationManager) {
             FLogger.getInstance().log(this.getClass(), "onStartCommand() mLocationManager=null");
@@ -124,7 +124,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     public void sleep() {
         FLogger.getInstance().log(this.getClass(), "sleep() called");
-        initAccelerometer();
+        refreshAccelerometer();
 
         AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
         Intent i = new Intent(this, MainReceiver.class);
@@ -137,23 +137,16 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    public void gpsTimeout() {
-        FLogger.getInstance().log(this.getClass(), "gpsTimeout() called");
+    public void mainProcessIteration() {
+        FLogger.getInstance().log(this.getClass(), "mainProcessIteration() called");
 
         stopGPS();
 
         ping(); // Send healthcheck alert if needed
 
-        initAccelerometer();
+        refreshAccelerometer();
 
-        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
-
-        // Detect device motion
-        if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_NOT_MOVED_THRESHOLD_MSEC)))) {
-            // Device was NOT moved during the last XXX seconds...
-            Main.getInstance().deviceWasMoved = false;
-            Main.getInstance().accelerometerValue = 0;
-        }
+        detectDeviceMotion();
 
         reportWifiNetworks(); // Report Wifi networks if needed (especially, between SafeZone and onLocationChanged() event!)
 
@@ -166,10 +159,21 @@ public class BackgroundService extends Service implements LocationListener {
         sleep();
     }
 
+    private void detectDeviceMotion() {
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+
+        // Detect device motion
+        if (Main.getInstance().deviceWasMoved && Utils.clockTicked(Main.getInstance().deviceMovedTime, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_NOT_MOVED_THRESHOLD_MSEC)))) {
+            // Device was NOT moved during the last XXX seconds...
+            Main.getInstance().deviceWasMoved = false;
+            Main.getInstance().accelerometerValue = 0;
+        }
+    }
+
     /**
      * Init and/or reset accelerometer stuff
      */
-    private void initAccelerometer() {
+    private void refreshAccelerometer() {
         // Accelerometer re-initialization
         MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
         // Accelerometer restart
@@ -306,12 +310,6 @@ public class BackgroundService extends Service implements LocationListener {
         FLogger.getInstance().log(this.getClass(), "prepareAndSendWifiReport() called");
         String deviceId = Main.getInstance().buildDeviceId();
         String wifiNetworks = Main.getInstance().getWifiNetworks();
-
-        // Just mark the Cached data due to device NOT moving:
-//        if (!Const.EMPTY.equals(Main.getInstance().previousSafeZoneCall)
-//                && !Main.getInstance().deviceWasMoved) {
-//            wifiNetworks = "*" + wifiNetworks;
-//        }
 
         if (Main.getInstance().wifiCache.length() > Constant.MAX_DB_RECORD_STRING_SIZE) {
             wifiNetworks = Main.getInstance().wifiCache.substring(0, Constant.MAX_DB_RECORD_STRING_SIZE);
@@ -560,7 +558,8 @@ public class BackgroundService extends Service implements LocationListener {
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
         if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_APP_SHUTDOWN_ENABLED))) {
             String safeZoneName = Main.getInstance().isInSafeZone();
-            if (Const.EMPTY.equals(safeZoneName) && !Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SHUTDOWN_IF_NOT_IN_SAFE_ZONE))) {
+            if (Const.EMPTY.equals(safeZoneName) &&
+                    !Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SHUTDOWN_IF_NOT_IN_SAFE_ZONE))) {
                 // We cannot shutdown, if we're NOT in safe zone (disabled by configuration)
                 return;
             }

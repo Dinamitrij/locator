@@ -15,6 +15,6 @@ public class TimeoutReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         FLogger.getInstance().log(this.getClass(), "onReceive() called. -=# Main timeout cycle #=-");
-        Main.mServiceInstance.gpsTimeout();
+        Main.mServiceInstance.mainProcessIteration();
     }
 }
