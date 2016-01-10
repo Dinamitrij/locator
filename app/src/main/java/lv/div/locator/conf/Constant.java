@@ -15,4 +15,6 @@ public class Constant {
     public static final int ENTER_SAFE_ZONE_POINTS = 2;
     public static final String SMS_COMMAND_START_APP = "#LOCSTART";
     public static final String SMS_COMMAND_STOP_APP = "#LOCSTOP";
+    public static final int DELAY_BETWEEN_LOCATION_UPDATES_MSEC = 2000;
+    public static final int DISTANCE_BETWEEN_LOCATION_UPDATE_METERS = 15;
 }

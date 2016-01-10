@@ -213,13 +213,17 @@ public class BackgroundService extends Service implements LocationListener {
             // Make sure at least one provider is available
             boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             if (networkProviderEnabled) {
-                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                        // TODO: move to DB configuration
+                        Constant.DELAY_BETWEEN_LOCATION_UPDATES_MSEC, Constant.DISTANCE_BETWEEN_LOCATION_UPDATE_METERS, this);
                 iProviders++;
             }
 
             boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             if (gpsProviderEnabled) {
-                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                        // TODO: move to DB configuration
+                        Constant.DELAY_BETWEEN_LOCATION_UPDATES_MSEC, Constant.DISTANCE_BETWEEN_LOCATION_UPDATE_METERS, this);
                 iProviders++;
                 if (!Main.getInstance().gpsLocationRequested) { // We're not waiting for location...
                     Main.getInstance().gpsLocationRequestTime = new Date(); // We just requested GPS location [change]
