@@ -84,6 +84,11 @@ public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
         return null;
     }
 
+    /**
+     * Exception, while loading configuration.
+     *
+     * @param deviceId
+     */
     protected abstract void handleLoadException(String deviceId);
 
     protected abstract void onPostExecute(Void result);
