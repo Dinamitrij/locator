@@ -29,6 +29,10 @@ public class HttpReportSender {
     public void onEvent(EventHttpReport event) {
         String logText = Const.EMPTY;
         FLogger.getInstance().log(this.getClass(), "onEvent() called");
+        processReportSending(event, logText);
+    }
+
+    private synchronized void processReportSending(EventHttpReport event, String logText) {
         try {
             Map<ConfigurationKey, String> cfg = Main.getInstance().config;
             String urlAddress = Const.EMPTY;
@@ -64,6 +68,5 @@ public class HttpReportSender {
             FLogger.getInstance().log(this.getClass(), Utils.stToString(e.getStackTrace()));
 
         }
-
     }
 }

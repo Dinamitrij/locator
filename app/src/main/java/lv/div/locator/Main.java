@@ -127,7 +127,7 @@ public class Main extends AppCompatActivity {
         super.finish();
     }
 
-    private void minimizeApp() {
+    private synchronized void minimizeApp() {
         Intent startMain = new Intent(Intent.ACTION_MAIN);
         startMain.addCategory(Intent.CATEGORY_HOME);
         startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -140,12 +140,12 @@ public class Main extends AppCompatActivity {
         startService(i);
     }
 
-    public String getBatteryStatus() {
+    public synchronized String getBatteryStatus() {
         int level = mServiceInstance.batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
         return String.valueOf(level);
     }
 
-    public String getWifiNetworks() {
+    public synchronized String getWifiNetworks() {
         FLogger.getInstance().log(this.getClass(), "getWifiNetworks() called");
 
         if (Main.getInstance().shuttingDown) {
@@ -205,7 +205,7 @@ public class Main extends AppCompatActivity {
      *
      * @return
      */
-    public String isInSafeZone() {
+    public synchronized String isInSafeZone() {
         //TODO: Add logic here! If there's no Starting/Ending WiFi ect.
         FLogger.getInstance().log(this.getClass(), "isInSafeZone() called");
         String result = Const.EMPTY;

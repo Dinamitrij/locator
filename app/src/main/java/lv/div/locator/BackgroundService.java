@@ -76,7 +76,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public synchronized int onStartCommand(Intent intent, int flags, int startId) {
 
         super.onStartCommand(intent, flags, startId);
         FLogger.getInstance().log(this.getClass(), "onStartCommand() called.");
@@ -100,7 +100,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
     @Override
-    public void onDestroy() {
+    public synchronized void onDestroy() {
         FLogger.getInstance().log(this.getClass(), "onDestroy() called");
         super.onDestroy();
     }
@@ -122,7 +122,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    public void sleep() {
+    public synchronized void sleep() {
         FLogger.getInstance().log(this.getClass(), "sleep() called");
         refreshAccelerometer();
 
@@ -137,7 +137,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    public void mainProcessIteration() {
+    public synchronized void mainProcessIteration() {
         FLogger.getInstance().log(this.getClass(), "mainProcessIteration() called");
 
         stopGPS();
@@ -159,7 +159,7 @@ public class BackgroundService extends Service implements LocationListener {
         sleep();
     }
 
-    private void detectDeviceMotion() {
+    private synchronized void detectDeviceMotion() {
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         // Detect device motion
@@ -173,7 +173,7 @@ public class BackgroundService extends Service implements LocationListener {
     /**
      * Init and/or reset accelerometer stuff
      */
-    private void refreshAccelerometer() {
+    private synchronized void refreshAccelerometer() {
         // Accelerometer re-initialization
         MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
         // Accelerometer restart
@@ -181,7 +181,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    public void stopGPS() {
+    public synchronized void stopGPS() {
         FLogger.getInstance().log(this.getClass(), "stopGPS() called");
         if (this.pi != null) {
             AlarmManager mgr = (AlarmManager) getSystemService(ALARM_SERVICE);
@@ -196,7 +196,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    public void startGPS() {
+    public synchronized void startGPS() {
         FLogger.getInstance().log(this.getClass(), "startGPS() called");
         AlarmManager mgr = null;
         Intent i = null;
@@ -246,7 +246,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
-    private void reportWifiNetworks() {
+    private synchronized void reportWifiNetworks() {
         if (Main.getInstance().shuttingDown) {
             return; // Do not proceed. We're shutting down now...
         }
@@ -306,11 +306,11 @@ public class BackgroundService extends Service implements LocationListener {
     /**
      * Increment accumulator
      */
-    private void incrementAccumulator() {
+    private synchronized void incrementAccumulator() {
         Main.getInstance().safeZoneTimesCount = Main.getInstance().safeZoneTimesCount + 1;
     }
 
-    private void prepareAndSendWifiReport() {
+    private synchronized void prepareAndSendWifiReport() {
         FLogger.getInstance().log(this.getClass(), "prepareAndSendWifiReport() called");
         String deviceId = Main.getInstance().buildDeviceId();
         String wifiNetworks = Main.getInstance().getWifiNetworks();
@@ -326,7 +326,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private void startMainProcessInForeground() {
+    private synchronized void startMainProcessInForeground() {
         FLogger.getInstance().log(this.getClass(), "startMainProcessInForeground() called");
         AlarmManager mgr;
         GregorianCalendar cal;
@@ -353,7 +353,7 @@ public class BackgroundService extends Service implements LocationListener {
 
 
     @Override
-    public void onLocationChanged(Location location) {
+    public synchronized void onLocationChanged(Location location) {
         FLogger.getInstance().log(this.getClass(), "onLocationChanged() called");
 
         Main.getInstance().gpsLocationRequested = false; // Location update is not in "Requested" state anymore
@@ -453,7 +453,7 @@ public class BackgroundService extends Service implements LocationListener {
      *
      * @param location The new Location that you want to evaluate
      */
-    public boolean isBetterLocation(Location location) {
+    public synchronized boolean isBetterLocation(Location location) {
         boolean result = false;
 
         if (Main.getInstance().currentBestLocation == null) {
@@ -516,7 +516,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private void ping() {
+    private synchronized void ping() {
         if (Main.getInstance().shuttingDown) {
             return; // Do not proceed. We're shutting down now...
         }
@@ -555,7 +555,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private void shutdownAppIfNeeded() {
+    private synchronized void shutdownAppIfNeeded() {
         if (Main.getInstance().shuttingDown) {
             return; // Do not proceed. We're already shutting down!
         }
@@ -589,7 +589,7 @@ public class BackgroundService extends Service implements LocationListener {
 
     }
 
-    private void sendShutdownSms() {
+    private synchronized void sendShutdownSms() {
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
         SmsManager smsManager = SmsManager.getDefault();
         try {
@@ -613,7 +613,7 @@ public class BackgroundService extends Service implements LocationListener {
     /**
      * Shutdown application
      */
-    private void powerOff() {
+    private synchronized void powerOff() {
         if (Main.getInstance().readyForPowerOff) {
             sendShutdownSms();
             stopSelf();
@@ -622,7 +622,7 @@ public class BackgroundService extends Service implements LocationListener {
         }
     }
 
-    private void sendZipToServer() {
+    private synchronized void sendZipToServer() {
         final Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
         File zippedLogFileToSend = zipFileObject();
@@ -667,7 +667,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private File zipFileObject() {
+    private synchronized File zipFileObject() {
         String zipFileName = zipFileName();
         File externalStorageDirectory = Environment.getExternalStorageDirectory();
         File zipFile = new File(externalStorageDirectory, zipFileName);
@@ -681,7 +681,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    public void zipLogFile() {
+    public synchronized void zipLogFile() {
         File zippedLogFileToSend = zipFileObject();
         boolean deleted = zippedLogFileToSend.delete(); // Cleanup old ZIP file
 
@@ -723,7 +723,7 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-    private void reloadConfiguration() {
+    private synchronized void reloadConfiguration() {
         if (Main.getInstance().shuttingDown) {
             return; // Do not proceed. We're shutting down now...
         }
