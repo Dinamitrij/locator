@@ -32,6 +32,7 @@ import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
+import android.telephony.gsm.GsmCellLocation;
 
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
@@ -780,16 +781,6 @@ public class BackgroundService extends Service implements LocationListener {
     }
 
 
-
-
-
-
-
-
-
-
-
-
     /**
      * Scanned GSM data will be used for Mozilla Location Service device positioning.
      */
@@ -813,16 +804,34 @@ public class BackgroundService extends Service implements LocationListener {
             public void onSignalStrengthsChanged(SignalStrength ss) {
                 if (ss.isGsm()) {
                     stopCellScanning();
+                    mSignalStrength = ss.getGsmSignalStrength();
+                    Map<String, WifiScanResult> wifiNetworksCache = Main.getInstance().wifiNetworksCache;
 
                     final List<android.telephony.CellInfo> observed = mTelephonyManager.getAllCellInfo();
+                    if (null == observed) { // Android 4.4.2 ?...
+                        GsmCellLocation cellLocation = (GsmCellLocation) mTelephonyManager.getCellLocation();
+
+                        Main.getInstance().mlsCache = getNetworkOperator()+Const.COMMA_SEPARATOR
+                                +"wcdma"+Const.COMMA_SEPARATOR
+                                +cellLocation.getCid()+Const.COMMA_SEPARATOR
+                                +cellLocation.getLac()+Const.COMMA_SEPARATOR
+                                +"-1"+Const.COMMA_SEPARATOR
+                                +"-1"+Const.COMMA_SEPARATOR
+                                +cellLocation.getPsc()+Const.COMMA_SEPARATOR
+                                +mSignalStrength+Const.HASH_SEPARATOR;
+                        addWifiDataToMLSCache(wifiNetworksCache);
+                        return; // Android 4.4.2 has no more information here. Exiting...
+                    }
+
+
                     List<LocCellInfo> cells = new ArrayList<LocCellInfo>(observed.size());
                     for (android.telephony.CellInfo observedCell : observed) {
                         if (!addCellToList(cells, observedCell, mTelephonyManager)) {
                             //Log.i(LOG_TAG, "Skipped CellInfo of unknown class: " + observedCell.toString());
                         }
                     }
-                    Map<String, WifiScanResult> wifiNetworksCache = Main.getInstance().wifiNetworksCache;
-                    mSignalStrength = ss.getGsmSignalStrength();
+
+
 
                     try {
 
@@ -839,13 +848,7 @@ public class BackgroundService extends Service implements LocationListener {
                                 +locCellInfo.getPsc()+Const.COMMA_SEPARATOR
                                 +mSignalStrength+Const.HASH_SEPARATOR;
 
-                        String sep = Const.EMPTY;
-                        for (String bssid : wifiNetworksCache.keySet()) {
-                            WifiScanResult wifiScanResult = wifiNetworksCache.get(bssid);
-                            int level = wifiScanResult.getLevel();
-                            Main.getInstance().mlsCache = Main.getInstance().mlsCache + sep + bssid + Const.COMMA_SEPARATOR + level;
-                            sep = Const.WIFI_VALUES_SEPARATOR;
-                        }
+                        addWifiDataToMLSCache(wifiNetworksCache);
 
                     } catch (Exception e) {
                         FLogger.getInstance().log(this.getClass(), "scanAndCacheGSMTowers() - Processing exception: "+e.getMessage());
@@ -864,6 +867,16 @@ public class BackgroundService extends Service implements LocationListener {
         mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
 
 
+    }
+
+    public void addWifiDataToMLSCache(Map<String, WifiScanResult> wifiNetworksCache) {
+        String sep = Const.EMPTY;
+        for (String bssid : wifiNetworksCache.keySet()) {
+            WifiScanResult wifiScanResult = wifiNetworksCache.get(bssid);
+            int level = wifiScanResult.getLevel();
+            Main.getInstance().mlsCache = Main.getInstance().mlsCache + sep + bssid + Const.COMMA_SEPARATOR + level;
+            sep = Const.WIFI_VALUES_SEPARATOR;
+        }
     }
 
     public synchronized void stopCellScanning() {
