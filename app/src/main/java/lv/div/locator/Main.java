@@ -2,7 +2,6 @@ package lv.div.locator;
 
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.SensorEvent;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.wifi.ScanResult;
@@ -16,7 +15,6 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +27,7 @@ import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.InitialConfigLoader;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
+import lv.div.locator.conf.WifiScanResult;
 import lv.div.locator.events.AccelerometerListener;
 import lv.div.locator.events.MovementDetector;
 import lv.div.locator.utils.FLogger;
@@ -44,7 +43,8 @@ public class Main extends AppCompatActivity {
     public static Location currentBestLocation;
     public static String wifiCache = Const.EMPTY;
     public static String previousSafeZoneCall = Const.EMPTY;
-    public static Set<String> wifiNetworksCache = new HashSet<>();
+    public static Map<String, WifiScanResult> wifiNetworksCache = new HashMap();
+    public static String mlsCache = Const.EMPTY;
     public static int safeZoneTimesCount = 0;
     public static Map<String, String> bssidNetworks = new HashMap<>();
     public static Date wifiCacheDate = new Date(0);
@@ -172,8 +172,15 @@ public class Main extends AppCompatActivity {
         // get list of the results in object format ( like an array )
         List<ScanResult> results = wifi.getScanResults();
         bssidNetworks.clear();
+        wifiNetworksCache.clear();
         SortedMap<Integer, String> networks = new TreeMap<>(Collections.reverseOrder());
         for (ScanResult result : results) {
+            WifiScanResult wifiScanResult = new WifiScanResult();
+            wifiScanResult.setBssid(result.BSSID);
+            wifiScanResult.setSsid(result.SSID);
+            wifiScanResult.setLevel(result.level);
+            wifiNetworksCache.put(result.BSSID, wifiScanResult);
+
             networks.put(result.level, result.SSID);
             bssidNetworks.put(result.BSSID, result.SSID);
         }
@@ -181,12 +188,12 @@ public class Main extends AppCompatActivity {
         Set<Map.Entry<Integer, String>> entries = networks.entrySet();
         Iterator<Map.Entry<Integer, String>> iterator = entries.iterator();
         StringBuffer sb = new StringBuffer();
-        wifiNetworksCache.clear();
+//        wifiNetworksCache.clear();
         while (iterator.hasNext()) {
             Map.Entry<Integer, String> network = iterator.next();
             sb.append(Const.SPACE);
             sb.append(network.getValue());
-            wifiNetworksCache.add(network.getValue());
+//            wifiNetworksCache.add(network.getValue());
             sb.append(Const.SPACE);
             sb.append(network.getKey());
             sb.append("; ");
@@ -240,8 +247,6 @@ public class Main extends AppCompatActivity {
         previousSafeZoneCall = result; // Refresh value
         return result;
     }
-
-
 
 
     /**

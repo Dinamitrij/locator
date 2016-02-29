@@ -1,5 +1,7 @@
 package lv.div.locator.events;
 
+import lv.div.locator.commons.conf.Const;
+
 public class EventHttpReport {
 
 
@@ -11,8 +13,9 @@ public class EventHttpReport {
     private String accuracy;
     private String safe;
     private String deviceId;
+    private String mlsData;
 
-    public EventHttpReport(String batteryStatus, String wifiData, String latitude, String longitude, String speed, String accuracy, String safe, String deviceId) {
+    public EventHttpReport(String batteryStatus, String wifiData, String latitude, String longitude, String speed, String accuracy, String safe, String deviceId, String mlsData) {
         this.batteryStatus = batteryStatus;
         this.wifiData = wifiData;
         this.latitude = latitude;
@@ -21,6 +24,7 @@ public class EventHttpReport {
         this.accuracy = accuracy;
         this.safe = safe;
         this.deviceId = deviceId;
+        this.mlsData = mlsData;
     }
 
 
@@ -86,5 +90,13 @@ public class EventHttpReport {
 
     public void setDeviceId(String deviceId) {
         this.deviceId = deviceId;
+    }
+
+    public String getMlsData() {
+        return mlsData;
+    }
+
+    public void setMlsData(String mlsData) {
+        this.mlsData = mlsData;
     }
 }

@@ -41,13 +41,14 @@ public class HttpReportSender {
 
                 String batteryStatus = URLEncoder.encode(event.getBatteryStatus(), Const.UTF8_ENCODING);
                 String wifiData = URLEncoder.encode(event.getWifiData(), Const.UTF8_ENCODING);
+                String mlsData = URLEncoder.encode(event.getMlsData(), Const.UTF8_ENCODING);
                 String latitude = URLEncoder.encode(event.getLatitude(), Const.UTF8_ENCODING);
                 String longitude = URLEncoder.encode(event.getLongitude(), Const.UTF8_ENCODING);
                 String accelerometer = String.valueOf(Main.getInstance().accelerometerValue);
                 String deviceId = event.getDeviceId();
                 long deviceTime = (new Date()).getTime();
 
-                urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_URL_MASK), latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId, deviceTime, accelerometer);
+                urlAddress = String.format(cfg.get(ConfigurationKey.DEVICE_REPORT_URL_MASK), latitude, longitude, wifiData, event.getAccuracy(), event.getSafe(), batteryStatus, event.getSpeed(), deviceId, deviceTime, accelerometer, mlsData);
                 logText = urlAddress;
 
             } else {

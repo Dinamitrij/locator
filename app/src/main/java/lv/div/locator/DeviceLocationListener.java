@@ -23,7 +23,7 @@ public class DeviceLocationListener implements LocationListener {
             String wifiNetworks = Main.getInstance().getWifiNetworks();
             EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
                     wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
-                    accuracy, "n/a", Main.getInstance().buildDeviceId());
+                    accuracy, "n/a", Main.getInstance().buildDeviceId(), Main.getInstance().mlsCache);
             EventBus.getDefault().post(eventHttpReport);
         }
 

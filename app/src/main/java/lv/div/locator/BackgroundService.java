@@ -1,5 +1,6 @@
 package lv.div.locator;
 
+import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -10,10 +11,27 @@ import android.content.IntentFilter;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.telephony.CellIdentityCdma;
+import android.telephony.CellIdentityGsm;
+import android.telephony.CellIdentityLte;
+import android.telephony.CellIdentityWcdma;
+import android.telephony.CellInfoCdma;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellInfoLte;
+import android.telephony.CellInfoWcdma;
+import android.telephony.CellLocation;
+import android.telephony.CellSignalStrengthCdma;
+import android.telephony.CellSignalStrengthGsm;
+import android.telephony.CellSignalStrengthLte;
+import android.telephony.CellSignalStrengthWcdma;
+import android.telephony.PhoneStateListener;
+import android.telephony.SignalStrength;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
@@ -45,10 +63,12 @@ import lv.div.locator.actions.HealthCheckReport;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.conf.Constant;
+import lv.div.locator.conf.WifiScanResult;
 import lv.div.locator.events.AccelerometerListener;
 import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventType;
 import lv.div.locator.events.MovementDetector;
+import lv.div.locator.scanners.LocCellInfo;
 import lv.div.locator.utils.FLogger;
 
 
@@ -66,6 +86,10 @@ public class BackgroundService extends Service implements LocationListener {
     private Date pingTime = new Date(0);
     private Date reloadConfigTime = new Date(0);
     private Map<EventType, SMSEvent> events = new HashMap();
+    protected TelephonyManager mTelephonyManager;
+    private PhoneStateListener mPhoneStateListener;
+    protected volatile int mSignalStrength = LocCellInfo.UNKNOWN_SIGNAL_STRENGTH;
+    protected boolean mIsStarted;
 
     public BackgroundService() {
 
@@ -81,7 +105,9 @@ public class BackgroundService extends Service implements LocationListener {
         super.onStartCommand(intent, flags, startId);
         FLogger.getInstance().log(this.getClass(), "onStartCommand() called.");
 
-        refreshAccelerometer();
+//        refreshAccelerometer();
+
+        mTelephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 
         if (null == mLocationManager) {
             FLogger.getInstance().log(this.getClass(), "onStartCommand() mLocationManager=null");
@@ -143,6 +169,8 @@ public class BackgroundService extends Service implements LocationListener {
         stopGPS();
 
         ping(); // Send healthcheck alert if needed
+
+        scanAndCacheGSMTowers();
 
         refreshAccelerometer();
 
@@ -320,7 +348,7 @@ public class BackgroundService extends Service implements LocationListener {
         }
 
         EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
-                wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, Const.ZERO_VALUE, Const.ZERO_VALUE, "?", deviceId);
+                wifiNetworks, Const.ZERO_COORDINATE, Const.ZERO_COORDINATE, Const.ZERO_VALUE, Const.ZERO_VALUE, "?", deviceId, Main.getInstance().mlsCache);
         EventBus.getDefault().post(eventHttpReport);
 
     }
@@ -375,7 +403,7 @@ public class BackgroundService extends Service implements LocationListener {
                     String wifiNetworks = Main.getInstance().getWifiNetworks();
                     EventHttpReport eventHttpReport = new EventHttpReport(Main.getInstance().getBatteryStatus(),
                             wifiNetworks, String.valueOf(latitude), String.valueOf(longitude), String.valueOf(location.getSpeed()),
-                            accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId());
+                            accuracy, DEFAULT_STATE, Main.getInstance().buildDeviceId(), Main.getInstance().mlsCache);
                     EventBus.getDefault().post(eventHttpReport);
                     FLogger.getInstance().log(this.getClass(), "onLocationChanged() GPS reporting EventBus.getDefault().post(eventHttpReport);");
 
@@ -407,7 +435,7 @@ public class BackgroundService extends Service implements LocationListener {
 
                             String jsonToSend = obj.toString();
 
-                            EventHttpReport eventHttpReport = new EventHttpReport(null, jsonToSend, null, null, null, null, null, null);
+                            EventHttpReport eventHttpReport = new EventHttpReport(null, jsonToSend, null, null, null, null, null, null, null);
                             EventBus.getDefault().post(eventHttpReport);
                             FLogger.getInstance().log(this.getClass(), "onLocationChanged() BSSID reporting EventBus.getDefault().post(eventHttpReport);");
                         } catch (Exception e) {
@@ -750,6 +778,214 @@ public class BackgroundService extends Service implements LocationListener {
             }
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
+     * Scanned GSM data will be used for Mozilla Location Service device positioning.
+     */
+    public synchronized void scanAndCacheGSMTowers() {
+        if (mIsStarted) {
+            return;
+        }
+
+        FLogger.getInstance().log(this.getClass(), "scanAndCacheGSMTowers() called");
+
+        mIsStarted = true;
+
+
+        if (Main.getInstance().shuttingDown) {
+            FLogger.getInstance().log(this.getClass(), "scanAndCacheGSMTowers() - We're shutting down! Skip...");
+            return;
+        }
+
+        mPhoneStateListener = new PhoneStateListener() {
+            @Override
+            public void onSignalStrengthsChanged(SignalStrength ss) {
+                if (ss.isGsm()) {
+                    stopCellScanning();
+
+                    final List<android.telephony.CellInfo> observed = mTelephonyManager.getAllCellInfo();
+                    List<LocCellInfo> cells = new ArrayList<LocCellInfo>(observed.size());
+                    for (android.telephony.CellInfo observedCell : observed) {
+                        if (!addCellToList(cells, observedCell, mTelephonyManager)) {
+                            //Log.i(LOG_TAG, "Skipped CellInfo of unknown class: " + observedCell.toString());
+                        }
+                    }
+                    Map<String, WifiScanResult> wifiNetworksCache = Main.getInstance().wifiNetworksCache;
+                    mSignalStrength = ss.getGsmSignalStrength();
+
+                    try {
+
+                        LocCellInfo locCellInfo = cells.get(0);
+
+                        Main.getInstance().mlsCache = Const.EMPTY;
+
+                        Main.getInstance().mlsCache = getNetworkOperator()+Const.COMMA_SEPARATOR
+                                +locCellInfo.getCellRadio()+Const.COMMA_SEPARATOR
+                                +locCellInfo.getCid()+Const.COMMA_SEPARATOR
+                                +locCellInfo.getLac()+Const.COMMA_SEPARATOR
+                                +locCellInfo.getMcc()+Const.COMMA_SEPARATOR
+                                +locCellInfo.getMnc()+Const.COMMA_SEPARATOR
+                                +locCellInfo.getPsc()+Const.COMMA_SEPARATOR
+                                +mSignalStrength+Const.HASH_SEPARATOR;
+
+                        String sep = Const.EMPTY;
+                        for (String bssid : wifiNetworksCache.keySet()) {
+                            WifiScanResult wifiScanResult = wifiNetworksCache.get(bssid);
+                            int level = wifiScanResult.getLevel();
+                            Main.getInstance().mlsCache = Main.getInstance().mlsCache + sep + bssid + Const.COMMA_SEPARATOR + level;
+                            sep = Const.WIFI_VALUES_SEPARATOR;
+                        }
+
+                    } catch (Exception e) {
+                        FLogger.getInstance().log(this.getClass(), "scanAndCacheGSMTowers() - Processing exception: "+e.getMessage());
+                    }
+
+
+                } else {
+                    stopCellScanning();
+                    FLogger.getInstance().logAndFlush(this.getClass(), "Alternative data. :-(");
+                    LocCellInfo currentCellInfo = getCurrentCellInfo();
+                    mSignalStrength = ss.getCdmaDbm();
+                }
+            }
+        };
+
+        mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+
+
+    }
+
+    public synchronized void stopCellScanning() {
+        mIsStarted = false;
+        if (mTelephonyManager != null && mPhoneStateListener != null) {
+            mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+        }
+        mSignalStrength = LocCellInfo.UNKNOWN_SIGNAL_STRENGTH;
+    }
+
+
+    protected LocCellInfo getCurrentCellInfo() {
+        final CellLocation currentCell = mTelephonyManager.getCellLocation();
+        if (currentCell == null) {
+            return null;
+        }
+
+        try {
+            final LocCellInfo info = new LocCellInfo();
+            final int signalStrength = mSignalStrength;
+            info.setCellLocation(currentCell,
+                    mTelephonyManager.getNetworkType(),
+                    getNetworkOperator(),
+                    signalStrength == LocCellInfo.UNKNOWN_SIGNAL_STRENGTH ? null : signalStrength);
+            return info;
+        } catch (IllegalArgumentException iae) {
+//            Log.e(LOG_TAG, "Skip invalid or incomplete CellLocation: " + currentCell, iae);
+        }
+        return null;
+    }
+
+
+    private String getNetworkOperator() {
+        String networkOperator = mTelephonyManager.getNetworkOperator();
+        // getNetworkOperator() may be unreliable on CDMA networks
+        if (networkOperator == null || networkOperator.length() <= 3) {
+            networkOperator = mTelephonyManager.getSimOperator();
+        }
+        return networkOperator;
+    }
+
+
+    protected boolean addWCDMACellToList(List<LocCellInfo> cells,
+                                         android.telephony.CellInfo observedCell,
+                                         TelephonyManager tm) {
+        boolean added = false;
+        if (Build.VERSION.SDK_INT >= 18 &&
+                observedCell instanceof CellInfoWcdma) {
+            CellIdentityWcdma ident = ((CellInfoWcdma) observedCell).getCellIdentity();
+            if (ident.getMnc() != Integer.MAX_VALUE && ident.getMcc() != Integer.MAX_VALUE) {
+                LocCellInfo cell = new LocCellInfo();
+                CellSignalStrengthWcdma strength = ((CellInfoWcdma) observedCell).getCellSignalStrength();
+                cell.setWcdmaCellInfo(ident.getMcc(),
+                        ident.getMnc(),
+                        ident.getLac(),
+                        ident.getCid(),
+                        ident.getPsc(),
+                        strength.getAsuLevel());
+                cells.add(cell);
+                added = true;
+            }
+        }
+        return added;
+    }
+
+
+    @TargetApi(18)
+    protected boolean addCellToList(List<LocCellInfo> cells,
+                                    android.telephony.CellInfo observedCell,
+                                    TelephonyManager tm) {
+        if (tm.getPhoneType() == 0) {
+            return false;
+        }
+
+        boolean added = false;
+        if (observedCell instanceof CellInfoGsm) {
+            CellIdentityGsm ident = ((CellInfoGsm) observedCell).getCellIdentity();
+            if (ident.getMcc() != Integer.MAX_VALUE && ident.getMnc() != Integer.MAX_VALUE) {
+                CellSignalStrengthGsm strength = ((CellInfoGsm) observedCell).getCellSignalStrength();
+                LocCellInfo cell = new LocCellInfo();
+                cell.setGsmCellInfo(ident.getMcc(),
+                        ident.getMnc(),
+                        ident.getLac(),
+                        ident.getCid(),
+                        strength.getAsuLevel());
+                cells.add(cell);
+                added = true;
+            }
+        } else if (observedCell instanceof CellInfoCdma) {
+            LocCellInfo cell = new LocCellInfo();
+            CellIdentityCdma ident = ((CellInfoCdma) observedCell).getCellIdentity();
+            CellSignalStrengthCdma strength = ((CellInfoCdma) observedCell).getCellSignalStrength();
+            cell.setCdmaCellInfo(ident.getBasestationId(),
+                    ident.getNetworkId(),
+                    ident.getSystemId(),
+                    strength.getDbm());
+            cells.add(cell);
+            added = true;
+        } else if (observedCell instanceof CellInfoLte) {
+            CellIdentityLte ident = ((CellInfoLte) observedCell).getCellIdentity();
+            if (ident.getMnc() != Integer.MAX_VALUE && ident.getMcc() != Integer.MAX_VALUE) {
+                LocCellInfo cell = new LocCellInfo();
+                CellSignalStrengthLte strength = ((CellInfoLte) observedCell).getCellSignalStrength();
+                cell.setLteCellInfo(ident.getMcc(),
+                        ident.getMnc(),
+                        ident.getCi(),
+                        ident.getPci(),
+                        ident.getTac(),
+                        strength.getAsuLevel(),
+                        strength.getTimingAdvance());
+                cells.add(cell);
+                added = true;
+            }
+        }
+
+        if (!added && Build.VERSION.SDK_INT >= 18) {
+            added = addWCDMACellToList(cells, observedCell, tm);
+        }
+
+        return added;
+    }
+
 
 
 }
