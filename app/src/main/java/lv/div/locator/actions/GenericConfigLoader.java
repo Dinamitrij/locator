@@ -3,6 +3,7 @@ package lv.div.locator.actions;
 
 import android.os.AsyncTask;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -14,6 +15,7 @@ import lv.div.locator.Main;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.conf.Constant;
+import lv.div.locator.utils.FLogger;
 
 
 public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
@@ -71,6 +73,8 @@ public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
             Main.getInstance().config.clear();
             Main.getInstance().config = tmpConfig;
 
+            adjustConfigForDevMode();
+
         } catch (Exception e) {
             handleLoadException(deviceId);
         } finally {
@@ -82,6 +86,20 @@ public abstract class GenericConfigLoader extends AsyncTask<Void, Void, Void> {
 
 
         return null;
+    }
+
+    /**
+     * If we're in DEV mode (file "locatordev.ini" is present), edit Locator server engine URLs
+     */
+    private void adjustConfigForDevMode() {
+        File devModeFlag = FLogger.buildFilePointer("locatordev.ini");
+        if (devModeFlag.exists()) {
+            Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+            for (ConfigurationKey key : cfg.keySet()) {
+                String configStringValue = cfg.get(key);
+                cfg.put(key, configStringValue.replace("/locator.", "/locatordev."));
+            }
+        }
     }
 
     /**

@@ -188,12 +188,10 @@ public class Main extends AppCompatActivity {
         Set<Map.Entry<Integer, String>> entries = networks.entrySet();
         Iterator<Map.Entry<Integer, String>> iterator = entries.iterator();
         StringBuffer sb = new StringBuffer();
-//        wifiNetworksCache.clear();
         while (iterator.hasNext()) {
             Map.Entry<Integer, String> network = iterator.next();
             sb.append(Const.SPACE);
             sb.append(network.getValue());
-//            wifiNetworksCache.add(network.getValue());
             sb.append(Const.SPACE);
             sb.append(network.getKey());
             sb.append("; ");

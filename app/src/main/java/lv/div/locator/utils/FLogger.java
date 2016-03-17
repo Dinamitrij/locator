@@ -86,19 +86,21 @@ public class FLogger {
         }
     }
 
+
+    /**
+     * Builds a pointer to file in internal storage
+     * @param fileName
+     */
+    public static File buildFilePointer(String fileName) {
+        File externalStorageDirectory = Environment.getExternalStorageDirectory();
+        File filePointer = new File(externalStorageDirectory, fileName);
+        return filePointer;
+    }
+
+
     public static void appendLog(String text) {
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
-
-        File externalStorageDirectory = Environment.getExternalStorageDirectory();
-//        File logFile = null;
-
-//        if (!Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_PATH))) {
-        File logFile = new File(externalStorageDirectory, Main.getInstance().buildLogFileName());
-//            File logFile = new File(new File(cfg.get(ConfigurationKey.DEVICE_LOCAL_LOGGING_PATH)), filename);
-//        } else {
-//            logFile = new File(externalStorageDirectory, filename);
-//        }
-
+        File logFile = buildFilePointer(Main.getInstance().buildLogFileName());
         if (!logFile.exists()) {
             try {
                 logFile.createNewFile();
