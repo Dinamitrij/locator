@@ -9,7 +9,7 @@ android {
         minSdkVersion 19
         targetSdkVersion 23
         versionCode 1
-        versionName "1.0"
+        versionName "1.1"
     }
     buildTypes {
         release {
@@ -28,6 +28,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.0.1'
     compile 'de.greenrobot:eventbus:2.4.0'
-    compile 'com.github.Dinamitrij:locatorcommons:1.12'
+    compile 'com.github.Dinamitrij:locatorcommons:1.15'
     compile 'com.github.loopj:android-async-http:1.4.9'
 }
