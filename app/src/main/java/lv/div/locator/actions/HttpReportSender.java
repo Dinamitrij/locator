@@ -19,11 +19,9 @@ public class HttpReportSender {
 
     private EventBus bus = EventBus.getDefault();
     private URL url;
-    private HttpURLConnection urlConnection;
 
     public HttpReportSender() {
         bus.register(this);
-        urlConnection = null;
     }
 
     public void onEvent(EventHttpReport event) {

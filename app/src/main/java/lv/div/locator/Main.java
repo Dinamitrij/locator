@@ -23,12 +23,16 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import de.greenrobot.event.EventBus;
 import lv.div.locator.actions.HttpReportSender;
 import lv.div.locator.actions.InitialConfigLoader;
+import lv.div.locator.actions.MlsFenceRequestSender;
 import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.conf.WifiScanResult;
 import lv.div.locator.events.AccelerometerListener;
+import lv.div.locator.events.EventHttpReport;
+import lv.div.locator.events.EventMlsFenceRequest;
 import lv.div.locator.events.MovementDetector;
 import lv.div.locator.utils.FLogger;
 
@@ -43,11 +47,15 @@ public class Main extends AppCompatActivity {
     public static Location currentBestLocation;
     public static String wifiCache = Const.EMPTY;
     public static String previousSafeZoneCall = Const.EMPTY;
+    public static String previousMLSFenceCall = Const.EMPTY;
     public static Map<String, WifiScanResult> wifiNetworksCache = new HashMap();
     public static String mlsCache = Const.EMPTY;
     public static int safeZoneTimesCount = 0;
     public static Map<String, String> bssidNetworks = new HashMap<>();
     public static Date wifiCacheDate = new Date(0);
+    public static Date mlsFenceCacheDate = new Date(0);
+    public static Date mlsFenceRecheckDate = new Date(0);
+    public static boolean mlsFenceRecheckBusy = false;
     public static Date wifiReportedDate = new Date(0);
     public static Date gpsReportedDate = new Date(0);
     public static Date deviceMotionTimeout = new Date(0);
@@ -55,6 +63,7 @@ public class Main extends AppCompatActivity {
     public static int accelerometerValue = 0; // last movement value
     public static Date deviceMovedTime = new Date(Long.MAX_VALUE);
     public static boolean gpsLocationRequested = false;
+    public static String gpsDataCache = Const.EMPTY;
     public static Date gpsLocationRequestTime = new Date(0);
     public static Main mInstance;
     public static boolean shuttingDown = false;
@@ -79,6 +88,9 @@ public class Main extends AppCompatActivity {
 
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
+
+        // Create MLS Fence checker:
+        MlsFenceRequestSender mlsFenceRequestSender = new MlsFenceRequestSender();
 
         // Accelerometer initialization
         MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
@@ -225,15 +237,37 @@ public class Main extends AppCompatActivity {
         String safeWifis = config.get(ConfigurationKey.SAFE_ZONE_WIFI);
         String[] safeWifiPatternsWithNames = safeWifis.split(Const.WIFI_VALUES_SEPARATOR);
         for (String safeWifiPatternWithName : safeWifiPatternsWithNames) {
-
             String[] wifiValueAndAlias = safeWifiPatternWithName.split(Const.WIFI_NAME_SEPARATOR);
             if (currentVisibleWifiNetworks.matches(wifiValueAndAlias[0])) {
                 FLogger.getInstance().log(this.getClass(), "isInSafeZone(): Matched Regexp: " + wifiValueAndAlias[0]);
                 result = wifiValueAndAlias[1];
                 break;
             }
-
         }
+
+
+        if (Utils.clockTicked(Main.getInstance().mlsFenceRecheckDate, 120000) && !Main.getInstance().mlsFenceRecheckBusy) { // need to recheck MLS fence safe zone area every 120 sec:
+
+            EventMlsFenceRequest mlsFenceRequest = new EventMlsFenceRequest("EventMlsFenceRequest");
+            EventBus.getDefault().post(mlsFenceRequest);
+
+//            Main.getInstance().mlsFenceRecheckDate = new Date();
+        }
+
+
+
+//        if (Const.EMPTY.equals(result)) { // Zone is not safe, according to WiFi settings. Trying MLS fences:
+//            if (!Const.EMPTY.equals(previousMLSFenceCall) && !Utils.clockTicked(Main.getInstance().mlsFenceCacheDate, 70000)) { // each 70 sec.
+//                result = previousMLSFenceCall;
+//            } else {
+//
+//                previousMLSFenceCall = result; // Refresh value
+//            }
+//
+//
+//        }
+
+
         FLogger.getInstance().log(this.getClass(), "isInSafeZone(): result = " + result);
         if (Const.EMPTY.equals(result)) {
             // Not a Safe Zone!

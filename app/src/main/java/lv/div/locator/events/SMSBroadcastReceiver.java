@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Telephony;
+import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
 
 import java.util.Map;
@@ -16,7 +17,7 @@ import lv.div.locator.conf.Constant;
 
 
 /**
- * Start Locator by receiving SMS with "#LOCSTART" text (#LOCSTOP)
+ * Handler for SMS received commands like #LOCSTART, #LOCSTOP, etc.
  */
 public class SMSBroadcastReceiver extends BroadcastReceiver {
 
@@ -26,7 +27,6 @@ public class SMSBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction().equals(SMSACTION)) {
-            //StringBuilder sb = new StringBuilder();
 
             Bundle bundle = intent.getExtras();
             if (bundle != null) {
@@ -57,10 +57,38 @@ public class SMSBroadcastReceiver extends BroadcastReceiver {
                         // be quiet...
                     }
                     // and wait...
+                } else if (Constant.SMS_COMMAND_DIAGNOSE_APP.equalsIgnoreCase(smsToCheck)) {
+                    // Send some telemetry data to the admin's phone
+                    sendTelemetry();
                 }
 
 
             }
         }
     }
+
+    private synchronized void sendTelemetry() {
+        Map<ConfigurationKey, String> cfg = Main.getInstance().config;
+        SmsManager smsManager = SmsManager.getDefault();
+        try {
+
+            if (Const.TRUE_FLAG.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_ENABLED))
+                    && !Const.EMPTY.equals(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE))) {
+
+                String telemetryMessage = cfg.get(ConfigurationKey.DEVICE_ALIAS) + " B: " + Main.getInstance().getBatteryStatus() + Const.SPACE +
+                        Main.getInstance().gpsDataCache + Const.SPACE + Main.getInstance().wifiCache;
+
+                if (telemetryMessage.length() > Constant.MAX_MESSAGE_SIZE) {
+                    telemetryMessage = telemetryMessage.substring(0, Constant.MAX_MESSAGE_SIZE);
+                }
+                smsManager.sendTextMessage(cfg.get(ConfigurationKey.DEVICE_SMS_ALERT_PHONE), null, telemetryMessage, null, null);
+            }
+
+        } catch (Exception e) {
+            // quiet
+        }
+    }
+
+
+
 }

@@ -1,7 +1,5 @@
 package lv.div.locator.events;
 
-import lv.div.locator.commons.conf.Const;
-
 public class EventHttpReport {
 
 
