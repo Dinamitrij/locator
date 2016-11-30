@@ -389,18 +389,18 @@ public class BackgroundService extends Service implements LocationListener {
 
         Map<ConfigurationKey, String> cfg = Main.getInstance().config;
 
+        boolean betterLocation = isBetterLocation(location);
+
         // Cache GPS data for Telemetry reporting:
-        boolean bLocation = isBetterLocation(location);
-        if (bLocation) {
-            Main.getInstance().gpsDataCache = "G: "+String.valueOf(location.getLatitude())+Const.SPACE+String.valueOf(location.getLongitude())+Const.SPACE+
-                    "GA: "+String.format("%.0f", location.getAccuracy());
+        if (betterLocation) {
+            Main.getInstance().gpsDataCache = "G: "+ String.format("%.6f", location.getLatitude())+", "+String.format("%.6f", location.getLongitude())+Const.SPACE+
+                    "GA: "+String.format("%.0f", location.getAccuracy())+"m";
         }
 
         // Should we report GPS coordinates already? (not too often?!)
         if (Utils.clockTicked(Main.getInstance().gpsReportedDate, Integer.valueOf(cfg.get(ConfigurationKey.DEVICE_GPS_COORDINATE_REPORT_MSEC)))) {
             FLogger.getInstance().log(this.getClass(), "onLocationChanged() Need to report GPS coords #--->");
 
-            boolean betterLocation = isBetterLocation(location);
             if (betterLocation) {
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
