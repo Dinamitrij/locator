@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
@@ -31,7 +32,6 @@ import lv.div.locator.commons.conf.ConfigurationKey;
 import lv.div.locator.commons.conf.Const;
 import lv.div.locator.conf.WifiScanResult;
 import lv.div.locator.events.AccelerometerListener;
-import lv.div.locator.events.EventHttpReport;
 import lv.div.locator.events.EventMlsFenceRequest;
 import lv.div.locator.events.MovementDetector;
 import lv.div.locator.utils.FLogger;
@@ -309,6 +309,34 @@ public class Main extends AppCompatActivity {
     public static String buildLogFileName() {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy");
         return "loc." + simpleDateFormat.format(new Date()) + ".txt";
+    }
+
+
+    public synchronized void forgetWifiNetworksButHome() {
+        String homeNetworks = "www.div.lv,Jack_Daniels";
+        String[] split = homeNetworks.split(",");
+
+        List<WifiConfiguration> list = wifi.getConfiguredNetworks();
+        for (WifiConfiguration i : list) {
+            String ssid = i.SSID;
+            int nid = i.networkId;
+
+            boolean thisIsHomeNetwork = false;
+            for (String homeNetwork : split) {
+                if (ssid.indexOf(homeNetwork) >= 0) {
+                    thisIsHomeNetwork = true;
+                    break;
+                }
+            }
+
+            if (!thisIsHomeNetwork) {
+                FLogger.getInstance().log(this.getClass(), "Forget Wifi: "+ssid);
+                wifi.removeNetwork(i.networkId);
+                wifi.saveConfiguration();
+            }
+
+        }
+
     }
 
 

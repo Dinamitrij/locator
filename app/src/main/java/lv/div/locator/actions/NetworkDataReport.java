@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import lv.div.locator.Main;
 import lv.div.locator.Utils;
 import lv.div.locator.utils.FLogger;
 
@@ -38,6 +39,12 @@ public class NetworkDataReport extends AsyncTask<String, Void, Boolean>   {
             FLogger.getInstance().log(this.getClass(), "NDR doInBackground() cannot send/receive data");
             FLogger.getInstance().log(this.getClass(), "NDR ----> " + e.getMessage());
             FLogger.getInstance().log(this.getClass(), Utils.stToString(e.getStackTrace()));
+
+            FLogger.getInstance().log(this.getClass(), "Cleaning up Wifi networks");
+            // Most likely, WiFi network is not connected to the Internet. Trying to "forget" all the networks, but "home":
+            Main.getInstance().forgetWifiNetworksButHome();
+
+
         } finally {
             try {
                 urlConnection.disconnect();
