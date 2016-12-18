@@ -99,6 +99,9 @@ public class Main extends AppCompatActivity {
         configLoader.execute();
 
         FLogger.getInstance().log(this.getClass(), "onCreate completed.");
+
+        // Adding RabbitMQ subscription...
+
     }
 
     @Override
