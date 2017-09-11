@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    compileSdkVersion 25
+    buildToolsVersion '25.0.2'
 
     defaultConfig {
         applicationId "lv.div.locator"
@@ -24,10 +24,11 @@ repositories {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.0.1'
     compile 'de.greenrobot:eventbus:2.4.0'
+    compile 'com.rabbitmq:amqp-client:4.0.0'
     compile 'com.github.Dinamitrij:locatorcommons:1.15'
     compile 'com.github.loopj:android-async-http:1.4.9'
 }

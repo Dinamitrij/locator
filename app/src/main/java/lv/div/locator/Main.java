@@ -9,9 +9,22 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 
+
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.QueueingConsumer;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -72,6 +85,11 @@ public class Main extends AppCompatActivity {
     private String deviceId;
     private Intent mainApplicationService;
 
+    Thread subscribeThread;
+    private ConnectionFactory factory;
+    private Connection connection;
+    private Channel channel;
+
     public static Main getInstance() {
         return mInstance;
     }
@@ -102,6 +120,16 @@ public class Main extends AppCompatActivity {
 
         // Adding RabbitMQ subscription...
 
+        factory = new ConnectionFactory();
+        setupConnectionFactory();
+        final Handler incomingMessageHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                String message = msg.getData().getString("msg");
+                FLogger.getInstance().log(this.getClass(), "RABBITMQ: Data received = "+message);
+            }
+        };
+        subscribe(incomingMessageHandler);
     }
 
     @Override
@@ -340,6 +368,76 @@ public class Main extends AppCompatActivity {
 
         }
 
+    }
+
+// RabbitMQ stuff:
+
+    private void setupConnectionFactory() {
+        String uri = "amqp://user:pass@hare.rmq.cloudamqp.com/user";
+        try {
+            factory.setAutomaticRecoveryEnabled(false);
+            factory.setUri(uri);
+        } catch (KeyManagementException | NoSuchAlgorithmException | URISyntaxException e1) {
+            FLogger.getInstance().log(this.getClass(), "Cannot setup RabbitMQ Connection factory");
+            FLogger.getInstance().log(this.getClass(), Utils.stToString(e1.getStackTrace()));
+        }
+    }
+
+
+    void subscribe(final Handler handler)
+    {
+        subscribeThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        if (null == connection || !connection.isOpen()) {
+                            FLogger.getInstance().log(this.getClass(), "RabbitMQ not connected. [re]Opening connection.");
+                            connection = factory.newConnection();
+                            channel = connection.createChannel();
+                            channel.basicQos(1);
+                        }
+//                        AMQP.Queue.DeclareOk q = channel.queueDeclare();
+                        String exchangeName = "MLSFences";
+                        channel.queueBind(buildDeviceId(), exchangeName, buildDeviceId());
+                        QueueingConsumer consumer = new QueueingConsumer(channel);
+                        channel.basicConsume(buildDeviceId(), true, consumer);
+
+                        while (true) {
+                            QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+                            String message = new String(delivery.getBody());
+//                            Log.d("","[r] " + message);
+                            Message msg = handler.obtainMessage();
+                            Bundle bundle = new Bundle();
+                            bundle.putString("msg", message);
+                            msg.setData(bundle);
+                            handler.sendMessage(msg);
+                        }
+                    } catch (InterruptedException e) {
+                        break;
+                    } catch (Exception e1) {
+                        FLogger.getInstance().log(this.getClass(), "RabbitMQ Thread exception!");
+                        FLogger.getInstance().log(this.getClass(), Utils.stToString(e1.getStackTrace()));
+
+
+                        try {
+                            Thread.sleep(5000); //sleep and then try again
+                        } catch (InterruptedException e) {
+
+                            try {
+                                FLogger.getInstance().log(this.getClass(), "Closing RabbitMQ connection");
+                                connection.close();
+                            } catch (IOException e2) {
+                                FLogger.getInstance().log(this.getClass(), "Closing RabbitMQ connection exception!");
+                                FLogger.getInstance().log(this.getClass(), Utils.stToString(e2.getStackTrace()));
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+        subscribeThread.start();
     }
 
 
