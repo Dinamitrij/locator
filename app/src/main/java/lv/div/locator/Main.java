@@ -102,7 +102,7 @@ public class Main extends AppCompatActivity {
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         // Create HTTP report sender:
         HttpReportSender httpReportSender = new HttpReportSender();
