@@ -1,7 +1,9 @@
 package lv.div.locator;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.wifi.ScanResult;
@@ -11,6 +13,9 @@ import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 
@@ -50,7 +55,7 @@ import lv.div.locator.events.MovementDetector;
 import lv.div.locator.utils.FLogger;
 
 
-public class Main extends AppCompatActivity {
+public class Main extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
     public static final int MAX_VALUE_FOR_RANDOM = 999999;
     public static BackgroundService mServiceInstance;
@@ -90,6 +95,13 @@ public class Main extends AppCompatActivity {
     private Connection connection;
     private Channel channel;
 
+
+
+    private static final int REQUEST_READ_SMS = 1;
+    private static final int REQUEST_READ_PHONE_STATE = 2;
+    private static final int REQUEST_RECEIVE_SMS = 3;
+    private static final int MY_PERMISSIONS_REQUEST_SMS_RECEIVE = 10;
+
     public static Main getInstance() {
         return mInstance;
     }
@@ -113,10 +125,46 @@ public class Main extends AppCompatActivity {
         // Accelerometer initialization
         MovementDetector.getInstance().setListener(AccelerometerListener.getInstance());
 
+
+//        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECEIVE_SMS}, MY_PERMISSIONS_REQUEST_SMS_RECEIVE);
+//        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, REQUEST_READ_SMS);
+//        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, REQUEST_READ_PHONE_STATE);
+
+
+        int PERMISSION_ALL = 1;
+        String[] PERMISSIONS = {
+                android.Manifest.permission.READ_PHONE_STATE,
+                android.Manifest.permission.INTERNET,
+                android.Manifest.permission.ACCESS_NETWORK_STATE,
+                android.Manifest.permission.ACCESS_WIFI_STATE,
+                android.Manifest.permission.CHANGE_WIFI_STATE,
+                android.Manifest.permission.READ_SMS,
+                android.Manifest.permission.SEND_SMS,
+                android.Manifest.permission.RECEIVE_SMS,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+
+        };
+
+        if(!hasPermissions(this, PERMISSIONS)){
+            ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSION_ALL);
+        }
+
+
+
+
+
+
         InitialConfigLoader configLoader = new InitialConfigLoader();
         configLoader.execute();
 
         FLogger.getInstance().log(this.getClass(), "onCreate completed.");
+
+
+
+
+
+
 
         // Adding RabbitMQ subscription...
 
@@ -373,7 +421,7 @@ public class Main extends AppCompatActivity {
 // RabbitMQ stuff:
 
     private void setupConnectionFactory() {
-        String uri = "amqp://user:pass@hare.rmq.cloudamqp.com/user";
+        String uri = "amqp://wnxnqcww:45W6cfWoc5KusFUDg-BUeWOQH-bi3n-s@hare.rmq.cloudamqp.com/wnxnqcww";
         try {
             factory.setAutomaticRecoveryEnabled(false);
             factory.setUri(uri);
@@ -397,7 +445,7 @@ public class Main extends AppCompatActivity {
                             channel = connection.createChannel();
                             channel.basicQos(1);
                         }
-//                        AMQP.Queue.DeclareOk q = channel.queueDeclare();
+
                         String exchangeName = "MLSFences";
                         channel.queueBind(buildDeviceId(), exchangeName, buildDeviceId());
                         QueueingConsumer consumer = new QueueingConsumer(channel);
@@ -441,4 +489,29 @@ public class Main extends AppCompatActivity {
     }
 
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_READ_PHONE_STATE:
+                if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    int a = 1+2;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+
+    public static boolean hasPermissions(Context context, String... permissions) {
+        if (context != null && permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
