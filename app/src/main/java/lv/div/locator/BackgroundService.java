@@ -393,8 +393,8 @@ public class BackgroundService extends Service implements LocationListener {
 
         // Cache GPS data for Telemetry reporting:
         if (betterLocation) {
-            Main.getInstance().gpsDataCache = "G: "+ String.format("%.6f", location.getLatitude())+", "+String.format("%.6f", location.getLongitude())+Const.SPACE+
-                    "GA: "+String.format("%.0f", location.getAccuracy())+"m";
+            Main.getInstance().gpsDataCache = "G: " + String.format("%.6f", location.getLatitude()) + ", " + String.format("%.6f", location.getLongitude()) + Const.SPACE +
+                    "GA: " + String.format("%.0f", location.getAccuracy()) + "m";
         }
 
         // Should we report GPS coordinates already? (not too often?!)
@@ -818,14 +818,14 @@ public class BackgroundService extends Service implements LocationListener {
                     if (null == observed) { // Android 4.4.2 ?...
                         GsmCellLocation cellLocation = (GsmCellLocation) mTelephonyManager.getCellLocation();
 
-                        Main.getInstance().mlsCache = getNetworkOperator()+Const.COMMA_SEPARATOR
-                                +"wcdma"+Const.COMMA_SEPARATOR
-                                +cellLocation.getCid()+Const.COMMA_SEPARATOR
-                                +cellLocation.getLac()+Const.COMMA_SEPARATOR
-                                +"-1"+Const.COMMA_SEPARATOR
-                                +"-1"+Const.COMMA_SEPARATOR
-                                +cellLocation.getPsc()+Const.COMMA_SEPARATOR
-                                +mSignalStrength+Const.HASH_SEPARATOR;
+                        Main.getInstance().mlsCache = getNetworkOperator() + Const.COMMA_SEPARATOR
+                                + "wcdma" + Const.COMMA_SEPARATOR
+                                + cellLocation.getCid() + Const.COMMA_SEPARATOR
+                                + cellLocation.getLac() + Const.COMMA_SEPARATOR
+                                + "-1" + Const.COMMA_SEPARATOR
+                                + "-1" + Const.COMMA_SEPARATOR
+                                + cellLocation.getPsc() + Const.COMMA_SEPARATOR
+                                + mSignalStrength + Const.HASH_SEPARATOR;
                         addWifiDataToMLSCache(wifiNetworksCache);
                         return; // Android 4.4.2 has no more information here. Exiting...
                     }
@@ -839,26 +839,25 @@ public class BackgroundService extends Service implements LocationListener {
                     }
 
 
-
                     try {
 
                         LocCellInfo locCellInfo = cells.get(0);
 
                         Main.getInstance().mlsCache = Const.EMPTY;
 
-                        Main.getInstance().mlsCache = getNetworkOperator()+Const.COMMA_SEPARATOR
-                                +locCellInfo.getCellRadio()+Const.COMMA_SEPARATOR
-                                +locCellInfo.getCid()+Const.COMMA_SEPARATOR
-                                +locCellInfo.getLac()+Const.COMMA_SEPARATOR
-                                +locCellInfo.getMcc()+Const.COMMA_SEPARATOR
-                                +locCellInfo.getMnc()+Const.COMMA_SEPARATOR
-                                +locCellInfo.getPsc()+Const.COMMA_SEPARATOR
-                                +mSignalStrength+Const.HASH_SEPARATOR;
+                        Main.getInstance().mlsCache = getNetworkOperator() + Const.COMMA_SEPARATOR
+                                + locCellInfo.getCellRadio() + Const.COMMA_SEPARATOR
+                                + locCellInfo.getCid() + Const.COMMA_SEPARATOR
+                                + locCellInfo.getLac() + Const.COMMA_SEPARATOR
+                                + locCellInfo.getMcc() + Const.COMMA_SEPARATOR
+                                + locCellInfo.getMnc() + Const.COMMA_SEPARATOR
+                                + locCellInfo.getPsc() + Const.COMMA_SEPARATOR
+                                + mSignalStrength + Const.HASH_SEPARATOR;
 
                         addWifiDataToMLSCache(wifiNetworksCache);
 
                     } catch (Exception e) {
-                        FLogger.getInstance().log(this.getClass(), "scanAndCacheGSMTowers() - Processing exception: "+e.getMessage());
+                        FLogger.getInstance().log(this.getClass(), "scanAndCacheGSMTowers() - Processing exception: " + e.getMessage());
                     }
 
 
@@ -1005,6 +1004,28 @@ public class BackgroundService extends Service implements LocationListener {
 
         return added;
     }
+
+
+    /**
+     * Auto-restart main service (after 10 sec.) it was "swiped out" by user
+     *
+     * @param rootIntent
+     */
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+
+        PendingIntent locatorAppService = PendingIntent.getService(
+                getApplicationContext(),
+                1001,
+                new Intent(getApplicationContext(), BackgroundService.class),
+                PendingIntent.FLAG_ONE_SHOT);
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, 10000, locatorAppService);
+    }
+
+
 
 
 

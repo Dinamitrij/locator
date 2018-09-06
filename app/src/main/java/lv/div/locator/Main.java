@@ -1,6 +1,8 @@
 package lv.div.locator;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -96,7 +98,6 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
     private Channel channel;
 
 
-
     private static final int REQUEST_READ_SMS = 1;
     private static final int REQUEST_READ_PHONE_STATE = 2;
     private static final int REQUEST_RECEIVE_SMS = 3;
@@ -109,6 +110,15 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Setup handler for uncaught exceptions when Locator was killed by Resource Manager
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread thread, Throwable e) {
+                handleUncaughtException(thread, e);
+            }
+        });
+
         mInstance = this;
         mServiceInstance = null;
 
@@ -146,24 +156,15 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
 
         };
 
-        if(!hasPermissions(this, PERMISSIONS)){
+        if (!hasPermissions(this, PERMISSIONS)) {
             ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSION_ALL);
         }
-
-
-
-
 
 
         InitialConfigLoader configLoader = new InitialConfigLoader();
         configLoader.execute();
 
         FLogger.getInstance().log(this.getClass(), "onCreate completed.");
-
-
-
-
-
 
 
         // Adding RabbitMQ subscription...
@@ -174,7 +175,7 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
             @Override
             public void handleMessage(Message msg) {
                 String message = msg.getData().getString("msg");
-                FLogger.getInstance().log(this.getClass(), "RABBITMQ: Data received = "+message);
+                FLogger.getInstance().log(this.getClass(), "RABBITMQ: Data received = " + message);
             }
         };
         subscribe(incomingMessageHandler);
@@ -326,25 +327,9 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
 
 
         if (Utils.clockTicked(Main.getInstance().mlsFenceRecheckDate, 120000) && !Main.getInstance().mlsFenceRecheckBusy) { // need to recheck MLS fence safe zone area every 120 sec:
-
             EventMlsFenceRequest mlsFenceRequest = new EventMlsFenceRequest("EventMlsFenceRequest");
             EventBus.getDefault().post(mlsFenceRequest);
-
-//            Main.getInstance().mlsFenceRecheckDate = new Date();
         }
-
-
-
-//        if (Const.EMPTY.equals(result)) { // Zone is not safe, according to WiFi settings. Trying MLS fences:
-//            if (!Const.EMPTY.equals(previousMLSFenceCall) && !Utils.clockTicked(Main.getInstance().mlsFenceCacheDate, 70000)) { // each 70 sec.
-//                result = previousMLSFenceCall;
-//            } else {
-//
-//                previousMLSFenceCall = result; // Refresh value
-//            }
-//
-//
-//        }
 
 
         FLogger.getInstance().log(this.getClass(), "isInSafeZone(): result = " + result);
@@ -409,7 +394,7 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
             }
 
             if (!thisIsHomeNetwork) {
-                FLogger.getInstance().log(this.getClass(), "Forget Wifi: "+ssid);
+                FLogger.getInstance().log(this.getClass(), "Forget Wifi: " + ssid);
                 wifi.removeNetwork(i.networkId);
                 wifi.saveConfiguration();
             }
@@ -421,7 +406,7 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
 // RabbitMQ stuff:
 
     private void setupConnectionFactory() {
-        String uri = "amqp://wnxnqcww:45W6cfWoc5KusFUDg-BUeWOQH-bi3n-s@hare.rmq.cloudamqp.com/wnxnqcww";
+        String uri = "amqp://sdfsdfdsf:sdfsdfsdfsdfsdfdsf@host";
         try {
             factory.setAutomaticRecoveryEnabled(false);
             factory.setUri(uri);
@@ -432,12 +417,11 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
     }
 
 
-    void subscribe(final Handler handler)
-    {
+    void subscribe(final Handler handler) {
         subscribeThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true) {
+                while (true) {
                     try {
                         if (null == connection || !connection.isOpen()) {
                             FLogger.getInstance().log(this.getClass(), "RabbitMQ not connected. [re]Opening connection.");
@@ -494,7 +478,7 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
         switch (requestCode) {
             case REQUEST_READ_PHONE_STATE:
                 if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    int a = 1+2;
+                    // No need to do anything yet...
                 }
                 break;
 
@@ -514,4 +498,26 @@ public class Main extends AppCompatActivity implements ActivityCompat.OnRequestP
         }
         return true;
     }
+
+
+    /**
+     * Handle exceptions like killing Locator by Resource Manager.
+     * Restart main service after 10 seconds.
+     *
+     * @param thread
+     * @param e
+     */
+    public void handleUncaughtException(Thread thread, Throwable e) {
+        //Same as done in onTaskRemoved()
+        PendingIntent service = PendingIntent.getService(
+                getApplicationContext(),
+                1001,
+                new Intent(getApplicationContext(), BackgroundService.class),
+                PendingIntent.FLAG_ONE_SHOT);
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, 10000, service);
+        System.exit(2);
+    }
+
 }
